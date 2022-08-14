@@ -126,7 +126,9 @@ class LogisticRegression(Scene):
             self.pixel_nums.append(pixel.fill_opacity)
 
         self.play(Write(pixel_values))
-        self.play(Write(self.linear.nodes), Write(self.linear.lines))
+        self.play(Write(self.linear.nodes))
+        self.linear.lines.resume_updating()
+        self.play(Write(self.linear.lines))
         self.wait()
 
         self.play(
@@ -319,6 +321,8 @@ else:
                 style="vs",
                 background_stroke_color=colors.BLACK,
                 background_stroke_width=4,
+                line_spacing=1,
+                font_size=18,
             )
             .next_to(self.full_graph, DOWN)
             .shift(UP, LEFT * 0.27)
@@ -392,7 +396,7 @@ else:
         # weights = Group(*[ValueTracker((random.random() - 0.5) * 2) for _ in range(8)])
 
         # essentailly using a dot as a vector value tracker
-        sigm_position = Dot(radius=0, point=self.linear.nodes.get_bottom() + DOWN * 0.5)
+        sigm_position = Dot(radius=0)
 
         def get_sigm_updated():
             input = torch.tensor(self.pixel_nums).unsqueeze(0).float()
@@ -430,7 +434,7 @@ else:
 
         error_text = always_redraw(get_error_text)
 
-        self.linear.nodes.shift(RIGHT * 3)
+        self.linear.nodes.shift(RIGHT * 3.1)
         self.demo_pixels.shift(RIGHT * 2)
         self.linear.lines.resume_updating()
 
@@ -448,11 +452,10 @@ else:
         )
 
         sigm_updated = always_redraw(get_sigm_updated)
-        sigm_position.shift(UP)
         sigm_updated.resume_updating()
 
         clarity_box = (
-            RoundedRectangle(width=8, height=3)
+            RoundedRectangle(width=7, height=2.5)
             .set_fill(colors.BLACK, opacity=0.8)
             .set_stroke(width=0)
         )
@@ -461,7 +464,7 @@ else:
         self.play(Write(sigm_updated))
 
         position_manager = VGroup(sigm_position, error_text_position)
-        self.play(position_manager.animate.arrange(DOWN, buff=0.5))
+        self.play(position_manager.animate.arrange(DOWN, buff=0.75))
 
         error_text.resume_updating()
         self.play(Write(error_text))
@@ -702,3 +705,113 @@ class FullyConnectedNN(Scene):
         ).set_stroke(width=1)
 
         self.play(Write(functional_form))
+        self.wait(2)
+
+        self.play(FadeOut(VGroup(text_box, functional_form), shift=UP))
+
+        # consider breaking it into another function here!
+        self.play(
+            input_nodes.animate.move_to([-6, 0, 0]),
+            hidden_layer1.nodes.animate.move_to([-2, 0, 0]),
+        )
+        self.play(FadeIn(mobs_to_remove, shift=LEFT))
+
+        weights1 = MathTex(
+            r"W_{1}",
+            font_size=40,
+            color=colors.BLACK,
+        ).set_stroke(width=1.5)
+
+        weights2 = MathTex(
+            r"W_{2}",
+            font_size=40,
+            color=colors.BLACK,
+        ).set_stroke(width=1.5)
+
+        weights3 = MathTex(
+            r"W_{3}",
+            font_size=40,
+            color=colors.BLACK,
+        ).set_stroke(width=1.5)
+
+        weights_all = VGroup(weights1, weights2, weights3).arrange(RIGHT, buff=3.4)
+
+        self.play(FadeIn(weights_all, shift=UP))
+
+        affine_transform = (
+            Tex(
+                r"affine\_transform1",
+                font_size=40,
+                color=colors.BLACK,
+            )
+            .set_stroke(width=1.5)
+            .move_to([-3.9, -3, 0])
+        )
+
+        plus = (
+            MathTex(
+                r"\circ",
+                font_size=40,
+                color=colors.BLACK,
+            )
+            .set_stroke(width=1.5)
+            .next_to(affine_transform, RIGHT)
+        )
+
+        affine_transform2 = (
+            Tex(
+                r"affine\_transform2",
+                font_size=40,
+                color=colors.BLACK,
+            )
+            .set_stroke(width=1.5)
+            .next_to(plus, RIGHT)
+        )
+
+        arrow = (
+            MathTex(
+                r"\rightarrow",
+                font_size=40,
+                color=colors.BLACK,
+            )
+            .set_stroke(width=1.5)
+            .next_to(affine_transform2, RIGHT)
+        )
+
+        affine_transform3 = (
+            Tex(
+                r"affine\_transform3",
+                font_size=40,
+                color=colors.BLACK,
+            )
+            .set_stroke(width=1.5)
+            .next_to(arrow, RIGHT)
+        )
+
+        non_linear_transform = (
+            Tex(
+                r"non\_linear\_transform",
+                font_size=40,
+                color=colors.BLACK,
+            )
+            .set_stroke(width=1.5)
+            .next_to(plus, RIGHT)
+        )
+        whole_network = VGroup(
+            input_nodes,
+            hidden_layer1.nodes,
+            hidden_layer2.nodes,
+            output_layer.nodes,
+            weights_all,
+        )
+
+        self.play(
+            FadeIn(affine_transform, shift=UP), whole_network.animate.shift(UP * 0.8)
+        )
+        self.play(FadeIn(plus, shift=UP))
+        self.play(FadeIn(affine_transform2, shift=UP))
+        self.play(FadeIn(arrow, shift=RIGHT))
+        self.play(FadeIn(affine_transform3, shift=UP))
+
+        # here is where the whole screen will fade away, to
+        # show the non-linear-transform circle example

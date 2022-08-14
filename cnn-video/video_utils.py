@@ -1,9 +1,7 @@
-from collections.abc import Iterable
 from manim import *
 import numpy as np
 from PIL import Image
 import colors
-from colour import Color
 
 # consider generalizing this to also rgb images
 def get_pixels_grid(

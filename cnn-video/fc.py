@@ -488,95 +488,107 @@ else:
             self.wait(0.5)
 
 
+# this is the scene where I show how we can generalize from
+# logistic regression
 class FullyConnectedNN(Scene):
     def construct(self):
         self.camera.background_color = colors.WHITE
 
-        self.generalize_scene()
+        self.build_nn()
+        self.wait()
+        self.introducing_vectorized_implementation()
+        self.wait()
+        self.affine_non_linear_demo()
         self.wait(2)
 
-    def generalize_scene(self):
+    def build_nn(self):
         input_length = 32
-        input_nodes = VGroup(
+        self.input_nodes = VGroup(
             *[Circle(radius=0.25, color=colors.BLACK) for _ in range(8)]
         )
-        input_nodes.arrange(DOWN).move_to([-6, 0, 0])
+        self.input_nodes.arrange(DOWN).move_to([-6, 0, 0])
 
         hidden_layer1_init = Layer(input_length, 1, self, input_displayed=8)
-        hidden_layer1 = Layer(input_length, 4, self, input_displayed=8)
-        hidden_layer2 = Layer(hidden_layer1.layer.in_features, 6, self)
-        output_layer_init = Layer(hidden_layer2.layer.in_features, 1, self)
-        output_layer = Layer(hidden_layer2.layer.in_features, 3, self)
+        self.hidden_layer1 = Layer(input_length, 4, self, input_displayed=8)
+        self.hidden_layer2 = Layer(self.hidden_layer1.layer.in_features, 6, self)
+        output_layer_init = Layer(self.hidden_layer2.layer.in_features, 1, self)
+        self.output_layer = Layer(self.hidden_layer2.layer.in_features, 3, self)
 
         # hidden_layer1.nodes.move_to([-2, 0, 0])
-        hidden_layer2.nodes.move_to([2, 0, 0])
+        self.hidden_layer2.nodes.move_to([2, 0, 0])
         output_layer_init.nodes.move_to([6, 0, 0])
-        output_layer.nodes.move_to([6, 0, 0])
+        self.output_layer.nodes.move_to([6, 0, 0])
 
-        hidden_layer1.build_lines(input_nodes)
-        hidden_layer2.build_lines(hidden_layer1.nodes)
-        output_layer.build_lines(hidden_layer2.nodes)
+        self.hidden_layer1.build_lines(self.input_nodes)
+        self.hidden_layer2.build_lines(self.hidden_layer1.nodes)
+        self.output_layer.build_lines(self.hidden_layer2.nodes)
 
-        hidden_layer1.lines.resume_updating()
-        hidden_layer2.lines.resume_updating()
-        output_layer.lines.resume_updating()
+        self.hidden_layer1.lines.resume_updating()
+        self.hidden_layer2.lines.resume_updating()
+        self.output_layer.lines.resume_updating()
 
-        self.play(FadeIn(input_nodes, shift=UP))
+        self.play(FadeIn(self.input_nodes, shift=UP))
 
         self.play(FadeIn(hidden_layer1_init.nodes, shift=UP))
         self.wait()
 
-        self.play(Transform(hidden_layer1_init.nodes, hidden_layer1.nodes))
-        self.play(Create(hidden_layer1.lines))
+        self.play(Transform(hidden_layer1_init.nodes, self.hidden_layer1.nodes))
+        self.play(Create(self.hidden_layer1.lines))
         self.remove(hidden_layer1_init.nodes)
-        self.add(hidden_layer1.nodes)
-        self.play(hidden_layer1.nodes.animate.move_to([-2, 0, 0]))
-        hidden_layer2.lines.resume_updating()
+        self.add(self.hidden_layer1.nodes)
+        self.play(self.hidden_layer1.nodes.animate.move_to([-2, 0, 0]))
+        self.hidden_layer2.lines.resume_updating()
 
-        self.play(FadeIn(hidden_layer2.nodes, shift=UP))
-        self.play(Create(hidden_layer2.lines))
+        self.play(FadeIn(self.hidden_layer2.nodes, shift=UP))
+        self.play(Create(self.hidden_layer2.lines))
 
         self.play(FadeIn(output_layer_init.nodes, shift=UP))
 
-        self.play(Transform(output_layer_init.nodes, output_layer.nodes))
-        self.play(Create(output_layer.lines))
+        self.play(Transform(output_layer_init.nodes, self.output_layer.nodes))
+        self.play(Create(self.output_layer.lines))
         self.remove(output_layer_init.nodes)
-        self.add(output_layer.nodes)
+        self.add(self.output_layer.nodes)
         self.wait()
 
         # here is where I will start introducing some notation
-        input_layer_labels = build_labels(input_nodes, 0)
+        self.input_layer_labels = build_labels(self.input_nodes, 0)
 
-        hidden_layer1.build_labels(1)
-        hidden_layer2.build_labels(2)
-        output_layer.build_labels(3)
+        self.hidden_layer1.build_labels(1)
+        self.hidden_layer2.build_labels(2)
+        self.output_layer.build_labels(3)
 
-        self.play(Write(input_layer_labels), run_time=0.5)
-        self.play(Write(hidden_layer1.labels), run_time=0.5)
-        self.play(Write(hidden_layer2.labels), run_time=0.5)
-        self.play(Write(output_layer.labels), run_time=0.5)
+        self.play(Write(self.input_layer_labels), run_time=0.5)
+        self.play(Write(self.hidden_layer1.labels), run_time=0.5)
+        self.play(Write(self.hidden_layer2.labels), run_time=0.5)
+        self.play(Write(self.output_layer.labels), run_time=0.5)
 
-        mobs_to_remove = VGroup(
-            hidden_layer2.nodes,
-            hidden_layer2.lines,
-            hidden_layer2.labels,
-            output_layer.nodes,
-            output_layer.lines,
-            output_layer.labels,
+    def introducing_vectorized_implementation(self):
+
+        self.mobs_to_remove = VGroup(
+            self.hidden_layer2.nodes,
+            self.hidden_layer2.lines,
+            self.hidden_layer2.labels,
+            self.output_layer.nodes,
+            self.output_layer.lines,
+            self.output_layer.labels,
         )
-        self.play(FadeOut(mobs_to_remove))
+        self.play(FadeOut(self.mobs_to_remove))
         self.play(
-            input_nodes.animate.move_to([-4.5, 0, 0]),
-            hidden_layer1.nodes.animate.move_to([4.5, 0, 0]),
+            self.input_nodes.animate.move_to([-4.5, 0, 0]),
+            self.hidden_layer1.nodes.animate.move_to([4.5, 0, 0]),
         )
 
         rect_width = (
-            abs(input_nodes.get_center()[0] - hidden_layer1.nodes.get_center()[0]) - 1
+            abs(
+                self.input_nodes.get_center()[0]
+                - self.hidden_layer1.nodes.get_center()[0]
+            )
+            - 1
         )
         text_box = (
             RoundedRectangle(
                 width=rect_width,
-                height=input_nodes.height - 3,
+                height=self.input_nodes.height - 3,
             )
             .set_fill(color=colors.BLACK, opacity=0.8)
             .set_stroke(width=0)
@@ -709,12 +721,12 @@ class FullyConnectedNN(Scene):
 
         self.play(FadeOut(VGroup(text_box, functional_form), shift=UP))
 
-        # consider breaking it into another function here!
+    def affine_non_linear_demo(self):
         self.play(
-            input_nodes.animate.move_to([-6, 0, 0]),
-            hidden_layer1.nodes.animate.move_to([-2, 0, 0]),
+            self.input_nodes.animate.move_to([-6, 0, 0]),
+            self.hidden_layer1.nodes.animate.move_to([-2, 0, 0]),
         )
-        self.play(FadeIn(mobs_to_remove, shift=LEFT))
+        self.play(FadeIn(self.mobs_to_remove, shift=LEFT))
 
         weights1 = MathTex(
             r"W_{1}",
@@ -798,16 +810,18 @@ class FullyConnectedNN(Scene):
             .next_to(plus, RIGHT)
         )
         whole_network = VGroup(
-            input_nodes,
-            hidden_layer1.nodes,
-            hidden_layer2.nodes,
-            output_layer.nodes,
+            self.input_nodes,
+            self.input_layer_labels,
+            self.hidden_layer1.get_layer_mobs(),
+            self.hidden_layer2.get_layer_mobs(),
+            self.output_layer.get_layer_mobs(),
             weights_all,
         )
 
         self.play(
             FadeIn(affine_transform, shift=UP), whole_network.animate.shift(UP * 0.8)
         )
+
         self.play(FadeIn(plus, shift=UP))
         self.play(FadeIn(affine_transform2, shift=UP))
         self.play(FadeIn(arrow, shift=RIGHT))
@@ -815,3 +829,12 @@ class FullyConnectedNN(Scene):
 
         # here is where the whole screen will fade away, to
         # show the non-linear-transform circle example
+        affine_transform_full = VGroup(
+            affine_transform, affine_transform2, affine_transform3, plus, arrow
+        )
+        self.play(
+            FadeOut(whole_network, shift=UP), FadeOut(affine_transform_full, shift=DOWN)
+        )
+
+    def backpropagation(self):
+        pass

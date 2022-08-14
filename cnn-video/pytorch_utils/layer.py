@@ -83,3 +83,6 @@ class Layer:
     def build_labels(self, layer_index):
         self.labels = build_labels(self.nodes, layer_index)
         return self
+
+    def get_layer_mobs(self):
+        return VGroup(self.lines, self.nodes, self.labels)

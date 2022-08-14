@@ -1,8 +1,8 @@
 from manim import *
 from video_utils import *
 from PIL import Image
-import random
-from pytorch_utils.layer import Layer
+import torch
+from pytorch_utils.layer import Layer, build_labels
 
 # consider turning a lot of the code here into
 # functions for more readability and maintainability
@@ -105,21 +105,12 @@ class LogisticRegression(Scene):
 
         self.play(self.demo_pixels.animate.move_to([-5, 0, 0]))
 
-        self.node = Circle(radius=0.5, color=colors.GRAY, fill_opacity=1).set_stroke(
-            color=colors.BLACK, width=4
-        )
-        self.node.z_index = 1
-        random.seed(4)
-        weights = [(random.random() - 0.5) * 2 for _ in range(len(self.demo_pixels))]
-        self.connection_lines = build_layer_lines(
-            self.demo_pixels,
-            VGroup(self.node),
-            colors=[colors.GREEN, colors.RED],
-            start=RIGHT,
-            end=LEFT,
-            opacities=weights,
-            always_back=True,
-        )
+        self.linear = Layer(8, 1, self)
+        self.linear.layer.float()
+        self.linear.layer.requires_grad_(False)
+        self.linear.build_lines(self.demo_pixels, colors=[colors.GREEN, colors.RED])
+        self.linear.lines.resume_updating()
+        self.linear.nodes.scale(2)
 
         pixel_values = VGroup()
         self.pixel_nums = []
@@ -134,8 +125,8 @@ class LogisticRegression(Scene):
             )
             self.pixel_nums.append(pixel.fill_opacity)
 
-        self.play(Write(self.node), Write(self.connection_lines))
         self.play(Write(pixel_values))
+        self.play(Write(self.linear.nodes), Write(self.linear.lines))
         self.wait()
 
         self.play(
@@ -148,10 +139,10 @@ class LogisticRegression(Scene):
 
         # consider color coating this text
         # for example * might have different color and so on
-        for pixel, weight in zip(pixel_values, weights):
-            weight_text = f"{weight:.2f}"
-            if weight >= 0:
-                weight_text = f" {weight:.2f}"
+        for pixel, weight in zip(pixel_values, self.linear.weights):
+            weight_text = f"{weight.get_value():.2f}"
+            if weight.get_value() >= 0:
+                weight_text = f" {weight.get_value():.2f}"
             new_text = Text(
                 f"{pixel.text} * {weight_text}",
                 color=colors.BLACK,
@@ -176,7 +167,7 @@ class LogisticRegression(Scene):
             weight=BOLD,
             font_size=15,
         )
-        pluses = VGroup(*[plus.copy() for _ in range(len(weights) - 1)])
+        pluses = VGroup(*[plus.copy() for _ in range(len(self.linear.weights) - 1)])
         pluses.scale(2).arrange_in_grid(cols=1, buff=0.55).move_to(
             value_multiply_text.get_left()
         ).shift(LEFT * 0.5)
@@ -194,7 +185,10 @@ class LogisticRegression(Scene):
         self.play(Write(equals_line))
 
         actual_sum = sum(
-            [float(pixel.text) * weight for pixel, weight in zip(pixel_values, weights)]
+            [
+                float(pixel.text) * weight.get_value()
+                for pixel, weight in zip(pixel_values, self.linear.weights)
+            ]
         )
         self.sum_text = (
             Text(
@@ -214,11 +208,14 @@ class LogisticRegression(Scene):
         self.play(
             FadeOut(pixel_values, equals_line, pluses, shift=UP),
         )
-        self.play(self.sum_text.animate.next_to(self.node, UP))
+        self.play(self.sum_text.animate.next_to(self.linear.nodes, UP))
 
-        sigm = MathTex(r"\sigma(x) = \frac{1}{1 + e^{-x}}", color=colors.BLACK).next_to(
-            self.node, DOWN
+        sigm = (
+            MathTex(r"\sigma(x) = \frac{1}{1 + e^{-x}}", color=colors.BLACK)
+            .next_to(self.linear.nodes, DOWN)
+            .set_stroke(width=1)
         )
+
         x = self.sum_text.text
         result = f"{sigmoid(float(x)):.2f}"
         sigm_inputted = (
@@ -228,11 +225,12 @@ class LogisticRegression(Scene):
             )
             .next_to(sigm, DOWN)
             .scale(0.8)
+            .set_stroke(width=1)
         )
         self.play(Write(sigm))
         self.wait()
         self.play(Write(sigm_inputted))
-        self.activation = VGroup(self.node, self.sum_text, sigm, sigm_inputted)
+        self.activation = VGroup(self.linear.nodes, self.sum_text, sigm, sigm_inputted)
 
         self.sigmoid_graph()
         self.wait()
@@ -263,7 +261,7 @@ class LogisticRegression(Scene):
             },
         ).set_stroke(color=colors.BLACK)
 
-        ax.get_axis(1).numbers.set_color(colors.BLACK)
+        ax.get_axis(1).numbers.set_color(colors.BLACK).set_stroke(width=1)
         ax_border = Rectangle(width=ax.x_length, height=ax.y_length).set_stroke(
             color=colors.BLACK, width=4
         )
@@ -336,7 +334,8 @@ else:
         mse_tex = MathTex(
             r"\text{MSE} = \frac{1}{N}\sum_{i=1}^{N}(y_{i} - \hat{y_{i}})^{2}",
             color=colors.BLACK,
-        )
+        ).set_stroke(width=1)
+
         mse_tex_supplement = MathTex(
             r"y_{i} \\ \hat{y_{i}}",
             color=colors.BLACK,
@@ -353,12 +352,14 @@ else:
             weight=BOLD,
             font="Fira Code",
         )
+
         mse_supplement = (
             VGroup(mse_tex_supplement, mse_text_supplements)
             .arrange(RIGHT)
             .next_to(mse_tex, DOWN)
             .shift(UP * 0.5)
-        )
+        ).set_stroke(width=1)
+
         self.play(Write(mse_tex))
         self.play(
             Write(mse_supplement),
@@ -368,10 +369,14 @@ else:
 
         self.play(mse_all.animate.move_to([0, 1.5, 0]))
 
-        argmin_tex = MathTex(
-            r"\text{argmin}(\text{MSE}(w_{0}, w_{1}, ..., w_{n}))",
-            color=colors.DARK_RED,
-        ).move_to([0, -3, 0])
+        argmin_tex = (
+            MathTex(
+                r"\text{argmin}(\text{MSE}(w_{0}, w_{1}, ..., w_{n}))",
+                color=colors.DARK_RED,
+            )
+            .set_stroke(width=1)
+            .move_to([0, -3, 0])
+        )
 
         arrow = Arrow(
             start=mse_all.get_critical_point(DOWN) + DOWN * 0.5,
@@ -382,27 +387,22 @@ else:
         self.play(Write(argmin_tex))
 
     def tweaking_weights(self):
-        self.node.move_to(ORIGIN + LEFT * 0.5)
+        self.linear.nodes.move_to(ORIGIN + LEFT * 0.5)
 
-        weights = Group(*[ValueTracker((random.random() - 0.5) * 2) for _ in range(8)])
+        # weights = Group(*[ValueTracker((random.random() - 0.5) * 2) for _ in range(8)])
 
         # essentailly using a dot as a vector value tracker
-        sigm_position = Dot(radius=0, point=self.node.get_bottom() + DOWN * 0.5)
-
-        def weighed_sum(inputs, weights):
-            result = 0
-            for x, w in zip(inputs, weights):
-                result += x * w.get_value()
-            return result
+        sigm_position = Dot(radius=0, point=self.linear.nodes.get_bottom() + DOWN * 0.5)
 
         def get_sigm_updated():
-            value = weighed_sum(self.pixel_nums, weights)
+            input = torch.tensor(self.pixel_nums).unsqueeze(0).float()
+            value = self.linear.layer(input).item()
             result = f"{sigmoid(value):.2f}"
             x = f"{value:.2f}"
 
             sigm_updated = Text(
                 f"{sigma}({x}) = {result}",
-                color=colors.BLACK,
+                color=colors.WHITE,
                 font="Fira Code",
                 font_size=30,
                 weight=BOLD,
@@ -412,13 +412,15 @@ else:
         error_text_position = Dot(radius=0)
 
         def get_error_text():
-            value = weighed_sum(self.pixel_nums, weights)
+            input = torch.tensor(self.pixel_nums).unsqueeze(0).float()
+            value = self.linear.layer(input).item()
+
             output = sigmoid(value)
 
             error = (1 - output) ** 2
             error_text = Text(
                 f"mse_error({output:.2f}) = {error:.2f}",
-                color=colors.BLACK,
+                color=colors.WHITE,
                 font="Fira Code",
                 font_size=30,
                 weight=BOLD,
@@ -428,51 +430,59 @@ else:
 
         error_text = always_redraw(get_error_text)
 
-        self.connection_lines = build_layer_lines(
-            self.demo_pixels,
-            VGroup(self.node),
-            colors=[colors.GREEN, colors.RED],
-            opacities=weights,
-            start=RIGHT,
-            end=LEFT,
-        )
-        self.connection_lines.shift(RIGHT * 2)
-        self.node.shift(RIGHT * 2)
+        self.linear.nodes.shift(RIGHT * 3)
         self.demo_pixels.shift(RIGHT * 2)
+        self.linear.lines.resume_updating()
 
         self.play(
-            FadeIn(self.connection_lines, self.node, self.demo_pixels, shift=RIGHT * 2)
+            FadeIn(
+                self.linear.lines,
+                self.linear.nodes,
+                self.demo_pixels,
+                shift=RIGHT * 2,
+            )
         )
         self.play(
-            self.node.animate.shift(RIGHT * 2), self.demo_pixels.animate.shift(LEFT)
+            self.linear.nodes.animate.shift(RIGHT * 2),
+            self.demo_pixels.animate.shift(LEFT),
         )
 
         sigm_updated = always_redraw(get_sigm_updated)
         sigm_position.shift(UP)
         sigm_updated.resume_updating()
 
+        clarity_box = (
+            RoundedRectangle(width=8, height=3)
+            .set_fill(colors.BLACK, opacity=0.8)
+            .set_stroke(width=0)
+        )
+
+        self.play(FadeIn(clarity_box))
         self.play(Write(sigm_updated))
 
-        error_text_position.next_to(sigm_position, DOWN * 4)
+        position_manager = VGroup(sigm_position, error_text_position)
+        self.play(position_manager.animate.arrange(DOWN, buff=0.5))
 
         error_text.resume_updating()
         self.play(Write(error_text))
 
-        clarity_box = (
-            RoundedRectangle(width=6, height=2)
-            .set_fill(colors.BLACK, opacity=0.1)
-            .set_stroke(width=0)
-            .move_to(
-                (sigm_position.get_center() + error_text_position.get_center()) / 2
-            )
-        )
-        self.play(FadeIn(clarity_box))
-        for _ in range(10):
-            animations = []
-            for weight in weights:
-                animations.append(weight.animate.set_value((random.random() - 0.5) * 2))
+        self.linear.layer.requires_grad_(True)
+        target = torch.tensor([1]).unsqueeze(0).float()
+        for _ in range(20):
+            self.linear.layer.zero_grad()
 
-            self.play(*animations)
+            x = torch.tensor(self.pixel_nums).unsqueeze(0).float()
+            x = self.linear.layer(x)
+            output = torch.sigmoid(x)
+            loss = torch.nn.functional.mse_loss(output, target)
+            print(loss.item())
+            loss.backward()
+
+            with torch.no_grad():
+                self.linear.layer.weight -= self.linear.layer.weight.grad
+                self.linear.layer.bias -= self.linear.layer.bias.grad
+
+            self.wait(0.5)
 
 
 class FullyConnectedNN(Scene):
@@ -487,7 +497,7 @@ class FullyConnectedNN(Scene):
         input_nodes = VGroup(
             *[Circle(radius=0.25, color=colors.BLACK) for _ in range(8)]
         )
-        input_nodes.arrange(UP).move_to([-6, 0, 0])
+        input_nodes.arrange(DOWN).move_to([-6, 0, 0])
 
         hidden_layer1_init = Layer(input_length, 1, self, input_displayed=8)
         hidden_layer1 = Layer(input_length, 4, self, input_displayed=8)
@@ -529,3 +539,166 @@ class FullyConnectedNN(Scene):
         self.play(Create(output_layer.lines))
         self.remove(output_layer_init.nodes)
         self.add(output_layer.nodes)
+        self.wait()
+
+        # here is where I will start introducing some notation
+        input_layer_labels = build_labels(input_nodes, 0)
+
+        hidden_layer1.build_labels(1)
+        hidden_layer2.build_labels(2)
+        output_layer.build_labels(3)
+
+        self.play(Write(input_layer_labels), run_time=0.5)
+        self.play(Write(hidden_layer1.labels), run_time=0.5)
+        self.play(Write(hidden_layer2.labels), run_time=0.5)
+        self.play(Write(output_layer.labels), run_time=0.5)
+
+        mobs_to_remove = VGroup(
+            hidden_layer2.nodes,
+            hidden_layer2.lines,
+            hidden_layer2.labels,
+            output_layer.nodes,
+            output_layer.lines,
+            output_layer.labels,
+        )
+        self.play(FadeOut(mobs_to_remove))
+        self.play(
+            input_nodes.animate.move_to([-4.5, 0, 0]),
+            hidden_layer1.nodes.animate.move_to([4.5, 0, 0]),
+        )
+
+        rect_width = (
+            abs(input_nodes.get_center()[0] - hidden_layer1.nodes.get_center()[0]) - 1
+        )
+        text_box = (
+            RoundedRectangle(
+                width=rect_width,
+                height=input_nodes.height - 3,
+            )
+            .set_fill(color=colors.BLACK, opacity=0.8)
+            .set_stroke(width=0)
+        )
+
+        self.play(FadeIn(text_box))
+
+        matrix_operation = MathTex(
+            r"""
+            z_{0}^{1} = w_{0,0}a_{0}^{0} + w_{0,1}a_{1}^{0} + ... + w_{0,6}a_{6}^{0} + w_{0,7}a_{7}^{0} + b_{0} \\
+            z_{1}^{1} =  w_{1,0}a_{0}^{0} + w_{1,1}a_{1}^{0} + ... + w_{1,6}a_{6}^{0} + w_{1,7}a_{7}^{0} + b_{1} \\
+            z_{2}^{1} =  w_{2,0}a_{0}^{0} + w_{2,1}a_{1}^{0} + ... + w_{2,6}a_{6}^{0} + w_{2,7}a_{7}^{0} + b_{2} \\
+            z_{3}^{1} =  w_{3,0}a_{0}^{0} + w_{3,1}a_{1}^{0} + ... + w_{3,6}a_{6}^{0} + w_{3,7}a_{7}^{0} + b_{3}
+            """,
+            color=colors.WHITE,
+            font_size=30,
+        ).set_stroke(width=1)
+        z_vec = MathTex(
+            r"""
+            \begin{bmatrix} 
+                z_{0}^{1} \\
+                z_{1}^{1} \\
+                z_{2}^{1} \\
+                z_{3}^{1}
+            \end{bmatrix}
+        """,
+            color=colors.WHITE,
+            font_size=30,
+        )
+        weight_matrix = MathTex(
+            r"""
+            =
+            \begin{bmatrix} 
+                w_{0,0} & w_{0,1} & ... & w_{0,6} & w_{0,7} \\
+                w_{1,0} & w_{1,1} & ... & w_{1,6} & w_{1,7} \\
+                w_{2,0} & w_{2,1} & ... & w_{2,6} & w_{2,7} \\
+                w_{3,0} & w_{3,1} & ... & w_{3,6} & w_{3,7}
+            \end{bmatrix}
+            """,
+            color=colors.WHITE,
+            font_size=30,
+        )
+        a_vec = MathTex(
+            r"""
+            \begin{bmatrix} 
+                a_{0}^{0} \\
+                a_{1}^{0} \\
+                \vdots \\
+                a_{6}^{0} \\
+                a_{7}^{0}
+            \end{bmatrix}
+            """,
+            color=colors.WHITE,
+            font_size=30,
+        )
+        b_vec = MathTex(
+            r"""
+            +
+            \begin{bmatrix} 
+                b_{0} \\
+                b_{1} \\
+                b_{2} \\
+                b_{3}
+            \end{bmatrix}
+            """,
+            color=colors.WHITE,
+            font_size=30,
+        )
+        vectorized_operation = (
+            VGroup(z_vec, weight_matrix, a_vec, b_vec)
+            .set_stroke(width=1)
+            .arrange(RIGHT)
+        )
+        self.play(Write(matrix_operation))
+        self.wait()
+
+        self.play(FadeTransform(matrix_operation, vectorized_operation), run_time=1.5)
+        self.remove(matrix_operation)
+        self.add(vectorized_operation)
+
+        self.wait()
+
+        a_new_vec = MathTex(
+            r"""
+            \begin{bmatrix} 
+                a_{0}^{1} \\
+                a_{1}^{1} \\
+                a_{2}^{1} \\
+                a_{3}^{1}
+            \end{bmatrix}
+            =
+            """,
+            color=colors.WHITE,
+            font_size=30,
+        ).set_stroke(width=1)
+        sigmoid_z = MathTex(
+            r"""
+            \sigma\left(
+            \begin{bmatrix} 
+                z_{0}^{1} \\
+                z_{1}^{1} \\
+                z_{2}^{1} \\
+                z_{3}^{1}
+            \end{bmatrix}
+            \right)
+            """,
+            color=colors.WHITE,
+            font_size=30,
+        ).set_stroke(width=1)
+
+        self.play(FadeOut(VGroup(weight_matrix, a_vec, b_vec), shift=2 * RIGHT))
+        self.play(z_vec.animate.move_to(ORIGIN))
+        self.wait()
+        self.play(Transform(z_vec, sigmoid_z))
+        self.remove(z_vec)
+        self.add(sigmoid_z)
+
+        a_equals_sig = VGroup(a_new_vec, sigmoid_z)
+
+        self.play(FadeIn(a_new_vec), a_equals_sig.animate.arrange(RIGHT))
+        self.wait()
+        self.play(FadeOut(a_equals_sig))
+
+        functional_form = MathTex(
+            r"a^{1} = \sigma\left(Wa^{0} + b\right)", font_size=40, color=colors.WHITE
+        ).set_stroke(width=1)
+
+        self.play(Write(functional_form))

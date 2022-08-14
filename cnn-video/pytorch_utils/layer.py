@@ -4,6 +4,21 @@ import colors
 from video_utils import *
 
 
+def build_labels(nodes, layer_index):
+    labels = VGroup()
+    for i in range(len(nodes)):
+        label = MathTex(
+            r"a_{" + str(i) + r"}^{" + str(layer_index) + r"}",
+            font_size=30,
+            color=colors.BLACK,
+        ).set_stroke(width=1)
+        label.add_updater(lambda m, i=i: m.next_to(nodes[i], ORIGIN))
+        label.resume_updating()
+        labels.add(label)
+
+    return labels
+
+
 class Layer:
     def __init__(
         self,
@@ -38,7 +53,7 @@ class Layer:
         self.nodes = VGroup(
             *[Circle(radius=0.25, color=colors.BLACK) for _ in range(output_dim)]
         )
-        self.nodes.arrange(UP)
+        self.nodes.arrange(DOWN)
 
         match_weights()
         match_biases()
@@ -63,4 +78,8 @@ class Layer:
             end=end,
             inflate_opacities=inflate_opacities,
         )
+        return self
+
+    def build_labels(self, layer_index):
+        self.labels = build_labels(self.nodes, layer_index)
         return self

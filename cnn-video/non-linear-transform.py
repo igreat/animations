@@ -27,6 +27,11 @@ class NonLinearTransform(Scene):
 
         labels = ax.get_axis_labels().set_color(colors.BLACK).set_stroke(width=1)
 
+        original_title = (
+            Tex(r"original space", font_size=30, color=colors.BLACK)
+            .set_stroke(width=1)
+            .next_to(ax, UP * 2)
+        )
         self.circle_points_inner = VGroup()
         self.points_array_inner = []
         for _ in range(20):
@@ -51,11 +56,12 @@ class NonLinearTransform(Scene):
 
         self.original_space = VGroup(
             ax,
+            original_title,
             labels,
             self.circle_points_inner,
             self.circle_points_outer,
         )
-        self.play(Write(ax), Write(labels))
+        self.play(Write(ax), Write(labels), Write(original_title))
         self.play(Write(self.circle_points_inner))
         self.play(Write(self.circle_points_outer))
 
@@ -104,10 +110,16 @@ class NonLinearTransform(Scene):
             .set_color(colors.BLACK)
             .set_stroke(width=1)
         )
-        ax_with_labels = VGroup(ax, labels)
+        feature_title = (
+            Tex(r"feature space", font_size=30, color=colors.BLACK)
+            .set_stroke(width=1)
+            .next_to(ax, UP * 2)
+        )
+        ax_with_labels = VGroup(ax, labels, feature_title)
 
         ax_with_labels.move_to([4, 0, 0]).scale(0.75)
-        self.play(Write(ax), Write(labels))
+        self.play(Write(ax), Write(labels), Write(feature_title))
+        self.wait()
 
         transformed_inner = self.circle_points_inner.copy()
         animations_inner = []
@@ -139,8 +151,7 @@ class NonLinearTransform(Scene):
             ax.c2p(1.25, 2.5), ax.c2p(1.25, -2.5), color=colors.BLACK
         )
         self.play(FadeIn(separation_line))
-        Axes.c2p
-        Axes.coords_to_point
+        self.wait()
         separation_line_transform = separation_line.copy()
         self.add(separation_line_transform)
 

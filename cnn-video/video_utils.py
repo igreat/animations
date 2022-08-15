@@ -159,7 +159,7 @@ def build_layer_lines(
     end=ORIGIN,
     always_back=False,
     inflate_opacities=1,
-) -> VMobject:
+) -> VGroup:
     # this builds a single line between two mobjects
 
     # colors should only have two elements

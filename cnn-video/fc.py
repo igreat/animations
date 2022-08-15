@@ -500,6 +500,8 @@ class FullyConnectedNN(Scene):
         self.wait()
         self.affine_non_linear_demo()
         self.wait(2)
+        self.backpropagation()
+        self.wait(2)
 
     def build_nn(self):
         input_length = 32
@@ -809,7 +811,7 @@ class FullyConnectedNN(Scene):
             .set_stroke(width=1.5)
             .next_to(plus, RIGHT)
         )
-        whole_network = VGroup(
+        self.whole_network = VGroup(
             self.input_nodes,
             self.input_layer_labels,
             self.hidden_layer1.get_layer_mobs(),
@@ -819,7 +821,8 @@ class FullyConnectedNN(Scene):
         )
 
         self.play(
-            FadeIn(affine_transform, shift=UP), whole_network.animate.shift(UP * 0.8)
+            FadeIn(affine_transform, shift=UP),
+            self.whole_network.animate.shift(UP * 0.8),
         )
 
         self.play(FadeIn(plus, shift=UP))
@@ -832,9 +835,48 @@ class FullyConnectedNN(Scene):
         affine_transform_full = VGroup(
             affine_transform, affine_transform2, affine_transform3, plus, arrow
         )
+        self.wait()
         self.play(
-            FadeOut(whole_network, shift=UP), FadeOut(affine_transform_full, shift=DOWN)
+            FadeOut(self.whole_network, shift=UP),
+            FadeOut(affine_transform_full, shift=DOWN),
         )
 
+        self.wait()
+        self.whole_network.move_to(ORIGIN)
+        self.play(FadeIn(self.whole_network, shift=DOWN))
+
+        # finish up the part where you need to show non_linear_transform text
+
     def backpropagation(self):
-        pass
+        back_arrows = VGroup()
+        for layer in [self.output_layer, self.hidden_layer2, self.hidden_layer1]:
+            back_arrows_layer = VGroup()
+            for line in layer.lines:
+                unit_vector = -line.get_unit_vector()
+                new_arrow = (
+                    Arrow(
+                        color=colors.BLACK,
+                        start=line.get_end() - unit_vector * 0.25,
+                        end=line.get_end() + unit_vector * 0.8,
+                        max_tip_length_to_length_ratio=0.1,
+                    )
+                    .set_stroke(width=2, opacity=0.5)
+                    .set_fill(opacity=0.5)
+                )
+
+                back_arrows_layer.add(new_arrow)
+
+            back_arrows.add(back_arrows_layer)
+
+        for arrows in back_arrows:
+            self.play(Write(arrows))
+
+        self.whole_network.add(back_arrows)
+
+        backprop_text = (
+            Tex(r"The Backpropagation Algorithm", font_size=40, color=colors.BLACK)
+            .set_stroke(width=1)
+            .next_to(self.whole_network, UP)
+        )
+
+        self.play(FadeIn(backprop_text, shift=UP))

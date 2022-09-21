@@ -112,11 +112,14 @@ class SeparatingSpirals2d(Scene):
         self.build_spirals()
         self.wait()
 
-        self.model = Spirals2dModel().eval()
+        self.model = Spirals2dModel()
         self.model.load_state_dict(torch.load("saved_models/separating_spirals2d_tanh"))
+        self.model.eval()
 
         # think about displaying the matrices as the transformation goes on
         self.transform()
+        self.wait()
+        self.show_boundary()
         self.wait(2)
         # self.reverse_transform()
 
@@ -259,6 +262,61 @@ class SeparatingSpirals2d(Scene):
         ).set_stroke(color=colors.BLACK)
 
         self.play(Create(line))
+        self.wait()
+        self.play(FadeOut(line))
+
+        new_blue_spiral = [
+            dot.animate.move_to(self.ax.c2p(*pos))
+            for dot, pos in zip(self.blue_spiral, self.blue_spiral_array)
+        ]
+        new_red_spiral = [
+            dot.animate.move_to(self.ax.c2p(*pos))
+            for dot, pos in zip(self.red_spiral, self.red_spiral_array)
+        ]
+
+        self.play(
+            *new_blue_spiral,
+            *new_red_spiral,
+            # *new_grid,
+            rate_func=rate_functions.linear,
+        )
+
+    def show_boundary(self):
+
+        points = []
+        x_min, x_max, y_min, y_max = -3, 3, -3, 3
+        x_num, y_num = 50, 50
+
+        width = (x_max - x_min) / x_num
+        height = (y_max - y_min) / y_num
+
+        for x in np.linspace(x_min, x_max, x_num):
+            for y in np.linspace(y_min, y_max, y_num):
+                points.append([x, y])
+
+        points = torch.tensor(points)
+
+        outputs = self.model(torch.tensor(points).float())
+        final_output = torch.sigmoid(outputs[-1])
+        final_output = final_output >= 0.5
+
+        # transparent squares
+        rects = VGroup()
+        for point, output in zip(points, final_output):
+            color = colors.PURPLE if output else colors.DARK_RED
+            rects.add(
+                Rectangle(height=height, width=width)
+                .set_fill(color, 0.25)
+                .set_stroke(width=0, opacity=0)
+                .move_to(self.ax.c2p(*point))
+            )
+
+        self.red_spiral.z_index = 3
+        self.blue_spiral.z_index = 3
+
+        self.bring_to_back(rects)
+        self.play(FadeIn(rects))
+        self.wait()
 
     # this part seems to not work at all...
     def reverse_transform(self):

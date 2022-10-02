@@ -4,110 +4,22 @@ import colors
 import numpy as np
 from utils import *
 from modules import *
-import random
 import torch
 from torch import nn
 from torch import optim
 import torch.nn.functional as F
 import numpy as np
+from pytorch_utils.layer import Layer
+from utils import *
+
 
 config.background_color = colors.WHITE
-
-# try to perhaps animate how points classified by the network morph and shift and how they make a clean boundary in the final layer!
-# this is the best workaround I can think of to the failure to make reverse transformations work...
 
 # perhaps show how the last transformation both corresponds to a hyperplane or line separating the classes
 
 
-def generate_outer_inner_circles(ax, num_dots=100):
-
-    from numpy import pi as PI
-    import math
-
-    inner = []
-    for _ in range(num_dots):
-        theta = random.random() * 2 * PI
-        r = (random.random()) / 2
-        x = math.cos(theta) * r
-        y = math.sin(theta) * r
-        inner.append([x, y])
-
-    outer = []
-    for _ in range(num_dots):
-        theta = random.random() * 2 * PI
-        r = (random.random()) / 2 + 0.75
-        x = math.cos(theta) * r
-        y = math.sin(theta) * r
-        outer.append([x, y])
-
-    inner_array = np.array(inner)
-    outer_array = np.array(outer)
-
-    inner_dots = VGroup(
-        *[
-            Dot3D(
-                ax.c2p(*point, 0),
-                radius=0.05,
-                color=colors.PURPLE,
-                resolution=(2, 2),
-            )
-            for point in inner_array
-        ]
-    )
-
-    outer_dots = VGroup(
-        *[
-            Dot3D(
-                ax.c2p(*point, 0),
-                radius=0.05,
-                color=colors.RED,
-                resolution=(2, 2),
-            )
-            for point in outer_array
-        ]
-    )
-    return (inner_dots, inner_array), (outer_dots, outer_array)
-
-
-def change_range(range: list[ValueTracker], range_to: list[float], animation=True):
-    if animation:
-        return [v.animate.set_value(i) for v, i in zip(range, range_to)]
-    else:
-        return [v.set_value(i) for v, i in zip(range, range_to)]
-
-
-def get_new_range(arrays: list[np.ndarray], min_ticks=list[int], max_ticks=list[int]):
-    array = np.concatenate(arrays, axis=0)
-
-    x_max, y_max = array.max(axis=0)
-    x_min, y_min = array.min(axis=0)
-
-    x_diff = x_max - x_min
-    y_diff = y_max - y_min
-
-    # try to find a better mechanism for this!
-    # there are clearly implications here for when x_diff is larger than 10
-    num_ticks = np.array([abs((6 - x_diff)) / 6, abs((6 - y_diff)) / 6])
-    num_ticks = num_ticks * max_ticks + min_ticks
-
-    x_tick_len = x_diff / num_ticks[0]
-    y_tick_len = y_diff / num_ticks[1]
-
-    return [x_min, x_max, x_tick_len], [y_min, y_max, y_tick_len]
-
-
-def leaky_relu(x):
-    return F.leaky_relu(torch.tensor(x)).numpy()
-
-
-def leaky_relu_inv(x, negative_slope=0.01):
-    x = torch.tensor(x)
-    return torch.minimum(1 / negative_slope * x, x).numpy()
-
-
 class SeparatingSpirals2d(Scene):
     def construct(self):
-        self.camera.background_color = colors.WHITE
 
         self.build_spirals()
         self.wait()
@@ -116,12 +28,16 @@ class SeparatingSpirals2d(Scene):
         self.model.load_state_dict(torch.load("saved_models/separating_spirals2d_tanh"))
         self.model.eval()
 
-        # think about displaying the matrices as the transformation goes on
-        self.transform()
-        self.wait()
+        self.show_neural_network()
         self.show_boundary()
-        self.wait(2)
+        self.train_neural_net()
+        self.show_mapping()
+
+        # TODO: think about displaying the matrices as the transformation goes on
+        # self.transform()
+        # self.wait()
         # self.reverse_transform()
+        self.wait(2)
 
     def build_spirals(self):
         self.x_range = [ValueTracker(-3.5), ValueTracker(3.5), ValueTracker(0.5)]
@@ -165,7 +81,7 @@ class SeparatingSpirals2d(Scene):
         # grid.set_color(colors.BLACK)
         # grid.grid_lines.set_stroke(width=0.5)
 
-        t = np.arange(2, 10, 0.1) * 0.4
+        t = np.arange(1, 11, 0.1) * 0.4
         self.blue_spiral_array = (np.array([np.cos(t), np.sin(t)]) * t).T
         self.red_spiral_array = (np.array([np.cos(t + np.pi), np.sin(t + np.pi)]) * t).T
 
@@ -183,10 +99,138 @@ class SeparatingSpirals2d(Scene):
             ]
         )
 
+        self.spiral_mobs = VGroup(self.ax, self.red_spiral, self.blue_spiral)
         self.play(Write(self.ax))
         # self.play(Write(grid.grid_lines))
         self.play(Write(self.red_spiral))
         self.play(Write(self.blue_spiral))
+        self.wait()
+        self.play(self.spiral_mobs.animate.move_to([4.5, 0, 0]).scale(0.6))
+
+    def show_neural_network(self):
+
+        self.vis_model = VisualizationModel(scene=self)
+        self.vis_model.mobs.move_to([-2.5, 0, 0]).scale(0.7)
+        self.play(
+            Write(self.vis_model.nodes),
+            Write(self.vis_model.lines),
+        )
+        self.wait()
+
+    def show_boundary(self):
+
+        points = []
+        x_min, x_max, y_min, y_max = -3, 3, -3, 3
+        x_num, y_num = 50, 50
+
+        self.boundary_width = (x_max - x_min) / x_num
+        self.boundary_height = (y_max - y_min) / y_num
+
+        for x in np.linspace(x_min, x_max, x_num):
+            for y in np.linspace(y_min, y_max, y_num):
+                points.append([x, y])
+
+        self.sample_points = torch.tensor(points)
+
+        output = self.vis_model(torch.tensor(self.sample_points).float())
+        final_output = torch.sigmoid(output)
+        final_output = final_output >= 0.5
+
+        # transparent squares
+        self.boundary_rects = VGroup()
+        for point, output in zip(self.sample_points, final_output):
+            color = colors.PURPLE if output else colors.RED
+            self.boundary_rects.add(
+                Rectangle(height=self.boundary_height, width=self.boundary_width)
+                .set_fill(color, 0.25)
+                .set_stroke(width=0, opacity=0)
+                .move_to(self.ax.c2p(*point))
+            )
+
+        self.red_spiral.z_index = 3
+        self.blue_spiral.z_index = 3
+
+        self.bring_to_back(self.boundary_rects)
+        self.play(FadeIn(self.boundary_rects))
+        self.wait()
+
+    def train_neural_net(self):
+        # preparing data for training
+        labels_blue = np.ones(len(self.blue_spiral_array)).reshape(-1, 1)
+        labels_red = np.zeros(len(self.blue_spiral_array)).reshape(-1, 1)
+
+        blue_spiral_l = np.concatenate((self.blue_spiral_array, labels_blue), axis=1)
+        red_spiral_l = np.concatenate((self.red_spiral_array, labels_red), axis=1)
+
+        data = np.concatenate((blue_spiral_l, red_spiral_l), axis=0)
+        data = torch.tensor(data, dtype=torch.float32)
+
+        optimizer = optim.Adam(self.vis_model.parameters(), lr=1e-2)
+        self.vis_model.requires_grad_(True)
+
+        for epoch in range(10):
+            x, labels = data[:, 0:2], data[:, 2].unsqueeze(1)
+            pred = self.vis_model(x)
+
+            # updating boundary
+
+            with torch.no_grad():
+                output = self.vis_model(torch.tensor(self.sample_points).float())
+                final_output = torch.sigmoid(output)
+                final_output = final_output >= 0.5
+                # transparent squares color change
+                animations = []
+                for i, output in enumerate(final_output):
+                    color = colors.PURPLE if output else colors.RED
+                    animations.append(
+                        self.boundary_rects[i].animate.set_fill(color=color)
+                    )
+
+            loss = F.binary_cross_entropy_with_logits(pred, labels)
+            self.play(
+                *animations,
+                run_time=0.01,
+                rate_func=rate_functions.linear,
+            )
+
+            if i % 1 == 0:
+                print(f"epoch: {epoch}, loss: {loss.item():.4f}")
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+        self.wait()
+
+    def show_mapping(self):
+        self.play(FadeOut(self.boundary_rects))
+        self.wait()
+        # self.vis_model.reset_colors()
+
+        self.play(
+            FadeOut(self.vis_model.nodes[2:], shift=UP),
+            FadeOut(self.vis_model.lines[1:], shift=UP),
+        )
+
+        self.play(
+            self.vis_model.nodes[:2]
+            .animate.arrange(RIGHT, buff=3)
+            .scale(1.5)
+            .move_to([-2.5, 0, 0])
+        )
+        self.wait()
+
+        # TODO: maybe build new lines and just morph the previous
+        #       lines into the next
+
+        new_nodes = self.vis_model.nodes[0].copy()
+        new_nodes.move_to(self.vis_model.nodes[1].get_center())
+        self.play(Transform(self.vis_model.nodes[1], new_nodes))
+        self.vis_model.reset_colors()
+        self.wait()
+
+        # TODO: display how the mapping will happen and
+        #       give examples tracked in the axes to the right
 
     def transform(self):
 
@@ -280,43 +324,6 @@ class SeparatingSpirals2d(Scene):
             # *new_grid,
             rate_func=rate_functions.linear,
         )
-
-    def show_boundary(self):
-
-        points = []
-        x_min, x_max, y_min, y_max = -3, 3, -3, 3
-        x_num, y_num = 50, 50
-
-        width = (x_max - x_min) / x_num
-        height = (y_max - y_min) / y_num
-
-        for x in np.linspace(x_min, x_max, x_num):
-            for y in np.linspace(y_min, y_max, y_num):
-                points.append([x, y])
-
-        points = torch.tensor(points)
-
-        outputs = self.model(torch.tensor(points).float())
-        final_output = torch.sigmoid(outputs[-1])
-        final_output = final_output >= 0.5
-
-        # transparent squares
-        rects = VGroup()
-        for point, output in zip(points, final_output):
-            color = colors.PURPLE if output else colors.DARK_RED
-            rects.add(
-                Rectangle(height=height, width=width)
-                .set_fill(color, 0.25)
-                .set_stroke(width=0, opacity=0)
-                .move_to(self.ax.c2p(*point))
-            )
-
-        self.red_spiral.z_index = 3
-        self.blue_spiral.z_index = 3
-
-        self.bring_to_back(rects)
-        self.play(FadeIn(rects))
-        self.wait()
 
     # this part seems to not work at all...
     def reverse_transform(self):
@@ -442,6 +449,8 @@ class SeparatingSpirals2dTraining(Scene):
 
         # here what I actually want is multiple axis arranged in a grid (use .arrange(rows, cols))
         # each grid will be for a particular layer
+
+        # ALSO SHOW HOW THE BOUNDARY CHANGES WITH TIME!
 
         ax_grid = VGroup()
         for i in range(8):

@@ -24,6 +24,7 @@ class Convolution(ThreeDScene):
         black_array = get_color_array(kernel_size, colors.BLACK)
         green_array = get_color_array(output_size, colors.GREEN)
 
+        np.random.seed(0)
         input_array = np.random.randint(0, 255, (5, 5))
         input_channel = get_pixels_grid_with_nums(
             orange_array, image_nums=input_array, border_width=4
@@ -79,3 +80,8 @@ class Convolution(ThreeDScene):
                 )
 
         self.wait(2)
+
+
+class CloseUpOfOperation(Scene):
+    def construct(self):
+        pass

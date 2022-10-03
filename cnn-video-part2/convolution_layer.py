@@ -7,9 +7,10 @@ import colors
 class ConvolutionLayer(ThreeDScene):
     def construct(self):
         self.camera.background_color = colors.WHITE
-        self.flatten_vs_spatial()
+        self.flattened_recap()
+        self.wait(2)
 
-    def flatten_vs_spatial(self):
+    def flattened_recap(self):
 
         bird_pil = Image.open("assets/bird.png").resize((32, 32))
         bird_image = np.array(bird_pil)
@@ -30,7 +31,7 @@ class ConvolutionLayer(ThreeDScene):
         image_pixels.z_index = 0
 
         flattened_image = (
-            Prism([12, 1, 1])
+            Prism([16, 1, 1])
             .scale(0.3)
             .set_fill(color=colors.DESERT)
             .set_stroke(width=1, color=colors.BLACK)
@@ -56,8 +57,19 @@ class ConvolutionLayer(ThreeDScene):
         self.play(FadeTransform(image_pixels, flattened_image))
         self.remove(image_pixels)
         self.add(flattened_image)
+        self.play(flattened_image.animate.rotate(1 / 16 * TAU, RIGHT))
         self.play(FadeIn(flat_dim_tex, shift=UP), FadeIn(one, shift=RIGHT))
-        self.play(labeled_flat.animate.shift([-3, 0, 0]))
-        self.wait(2)
+        self.play(labeled_flat.animate.shift([0, 3, 0]))
 
-        
+        transform_tex = MathTex(
+            r"\sigma\left(Wx + b\right)", font_size=40, color=colors.BLACK
+        ).set_stroke(width=1)
+
+        self.wait()
+        arrow = Arrow(
+            start=flat_dim_tex.get_bottom(),
+            end=transform_tex.get_top(),
+            color=colors.BLACK,
+        )
+
+        self.play(Write(transform_tex), Write(arrow))

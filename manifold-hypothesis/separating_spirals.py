@@ -1,21 +1,19 @@
-from re import L
 from manim import *
 import colors
 import numpy as np
 from utils import *
 from modules import *
 import torch
-from torch import nn
 from torch import optim
 import torch.nn.functional as F
 import numpy as np
-from pytorch_utils.layer import Layer
 from utils import *
 
 
 config.background_color = colors.WHITE
 
-# perhaps show how the last transformation both corresponds to a hyperplane or line separating the classes
+# TODO: perhaps show how the last transformation both corresponds
+#       to a hyperplane or line separating the classes
 
 
 class SeparatingSpirals2d(Scene):
@@ -147,9 +145,6 @@ class SeparatingSpirals2d(Scene):
                 .move_to(self.ax.c2p(*point))
             )
 
-        self.red_spiral.z_index = 3
-        self.blue_spiral.z_index = 3
-
         self.bring_to_back(self.boundary_rects)
         self.play(FadeIn(self.boundary_rects))
         self.wait()
@@ -168,12 +163,11 @@ class SeparatingSpirals2d(Scene):
         optimizer = optim.Adam(self.vis_model.parameters(), lr=1e-2)
         self.vis_model.requires_grad_(True)
 
-        for epoch in range(10):
+        for epoch in range(1):
             x, labels = data[:, 0:2], data[:, 2].unsqueeze(1)
             pred = self.vis_model(x)
 
             # updating boundary
-
             with torch.no_grad():
                 output = self.vis_model(torch.tensor(self.sample_points).float())
                 final_output = torch.sigmoid(output)
@@ -205,7 +199,6 @@ class SeparatingSpirals2d(Scene):
     def show_mapping(self):
         self.play(FadeOut(self.boundary_rects))
         self.wait()
-        # self.vis_model.reset_colors()
 
         self.play(
             FadeOut(self.vis_model.nodes[2:], shift=UP),
@@ -227,10 +220,59 @@ class SeparatingSpirals2d(Scene):
         new_nodes.move_to(self.vis_model.nodes[1].get_center())
         self.play(Transform(self.vis_model.nodes[1], new_nodes))
         self.vis_model.reset_colors()
+        self.play(
+            self.vis_model.nodes[0].animate.scale(1.5),
+            self.vis_model.nodes[1].animate.scale(1.5),
+        )
         self.wait()
 
         # TODO: display how the mapping will happen and
         #       give examples tracked in the axes to the right
+
+        def get_dot_position(t):
+            return np.array([np.cos(t), np.sin(t)]) * t
+
+        t = ValueTracker(1)
+        initial_point = [self.ax.c2p(*get_dot_position(t.get_value()), 0)]
+
+        tracked_dot = Dot(point=initial_point, radius=0.05, color=colors.BLACK)
+        tracked_dot.add_updater(
+            lambda x: x.move_to(self.ax.c2p(*get_dot_position(t.get_value()), 0))
+        )
+        tracked_dot.z_index = 3
+
+        def get_dot_text():
+            x, y = get_dot_position(t.get_value())
+
+            x_text = (
+                MathTex(
+                    f"{x:.2f}",
+                    color=colors.BLACK,
+                    font_size=25,
+                )
+                .next_to(self.vis_model.input_nodes[0], ORIGIN)
+                .set_stroke(width=1)
+            )
+
+            y_text = (
+                MathTex(
+                    f"{y:.2f}",
+                    color=colors.BLACK,
+                    font_size=25,
+                )
+                .next_to(self.vis_model.input_nodes[1], ORIGIN)
+                .set_stroke(width=1)
+            )
+
+            return VGroup(x_text, y_text)
+
+        dot_text = always_redraw(get_dot_text)
+
+        self.play(Write(tracked_dot))
+        self.play(Write(dot_text))
+        self.play(t.animate.set_value(4.4), run_time=3)
+        self.play(t.animate.set_value(1.0), run_time=3)
+        self.wait()
 
     def transform(self):
 
@@ -327,6 +369,10 @@ class SeparatingSpirals2d(Scene):
 
     # this part seems to not work at all...
     def reverse_transform(self):
+
+        # TODO: instead of reverse transforming the linear boundary of the final layer
+        #       just show how the boundary changes for each intermediate layer
+        #       as I reverse transform the whole data set
 
         reverse_weights = [np.linalg.inv(w) for w in reversed(self.weights[:-1])]
         reverse_biases = [-b for b in reversed(self.biases[:-1])]

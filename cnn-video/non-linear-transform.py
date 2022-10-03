@@ -1,9 +1,7 @@
-from turtle import circle
 from manim import *
 import colors
 import random
 import math
-import numpy as np
 
 
 class NonLinearTransform(Scene):

@@ -4,19 +4,6 @@ from PIL import Image
 import torch
 from pytorch_utils.layer import Layer, build_labels
 
-# consider turning a lot of the code here into
-# functions for more readability and maintainability
-
-# REMEMBER THAT YOU CAN DEFINE FUNCTIONS INSIDE THE CLASS YOU DUMBASS!!
-# therefore, try to separate the scene into different parts, each defined in
-# its own function!
-# use self.variable for objects you want to use across scenes
-
-# consider chaning all latex to more bold
-# consider changing MSE to just cost function or E
-# to make it clear that we can choose any differentiable erro function
-
-# consider changing the fill color of the nodes to the activation of sigmoid
 sigma = "σ"
 
 

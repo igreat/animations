@@ -100,9 +100,6 @@ def center_crop(image: Image, length: int) -> Image:
     return image
 
 
-Image
-
-
 def resize_image(image: Image, length: int) -> Image:
     # returns a resized image with maintained aspect ratio
 

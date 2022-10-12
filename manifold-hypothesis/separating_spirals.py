@@ -8,6 +8,7 @@ from torch import optim
 import torch.nn.functional as F
 import numpy as np
 from utils import *
+from pytorch_utils.layer import build_layer_lines
 
 
 config.background_color = colors.WHITE
@@ -117,6 +118,9 @@ class SeparatingSpirals2d(Scene):
 
     def show_boundary(self):
 
+        # TODO: think about another way you might draw the boundaries that
+        #       is both more efficient and smoother
+
         points = []
         x_min, x_max, y_min, y_max = -3, 3, -3, 3
         x_num, y_num = 50, 50
@@ -213,12 +217,29 @@ class SeparatingSpirals2d(Scene):
         )
         self.wait()
 
-        # TODO: maybe build new lines and just morph the previous
-        #       lines into the next
-
         new_nodes = self.vis_model.nodes[0].copy()
         new_nodes.move_to(self.vis_model.nodes[1].get_center())
+
         self.play(Transform(self.vis_model.nodes[1], new_nodes))
+        self.remove(self.vis_model.nodes[1])
+        self.add(new_nodes)
+        self.vis_model.nodes[1] = new_nodes
+
+        new_lines = build_layer_lines(
+            self.vis_model.input_nodes,
+            self.vis_model.nodes[1],
+            [1, 0.5, -0.5, -1],
+            colors=[colors.GREEN, colors.RED],
+            start=RIGHT,
+            end=LEFT,
+            inflate_opacities=3,
+        )
+
+        self.play(Transform(self.vis_model.lines[0], new_lines))
+        self.remove(self.vis_model.lines[0])
+        self.add(new_lines)
+        self.vis_model.lines[0] = new_lines
+
         self.vis_model.reset_colors()
         self.play(
             self.vis_model.nodes[0].animate.scale(1.5),
@@ -226,23 +247,23 @@ class SeparatingSpirals2d(Scene):
         )
         self.wait()
 
-        # TODO: display how the mapping will happen and
-        #       give examples tracked in the axes to the right
+        # TODO: here I actually want to show the mapping in terms of
+        #       numbers first, and then show them in the axes
 
-        def get_dot_position(t):
+        def get_dot_pos(t):
             return np.array([np.cos(t), np.sin(t)]) * t
 
         t = ValueTracker(1)
-        initial_point = [self.ax.c2p(*get_dot_position(t.get_value()), 0)]
+        initial_point = [self.ax.c2p(*get_dot_pos(t.get_value()), 0)]
 
         tracked_dot = Dot(point=initial_point, radius=0.05, color=colors.BLACK)
         tracked_dot.add_updater(
-            lambda x: x.move_to(self.ax.c2p(*get_dot_position(t.get_value()), 0))
+            lambda x: x.move_to(self.ax.c2p(*get_dot_pos(t.get_value()), 0))
         )
         tracked_dot.z_index = 3
 
         def get_dot_text():
-            x, y = get_dot_position(t.get_value())
+            x, y = get_dot_pos(t.get_value())
 
             x_text = (
                 MathTex(
@@ -268,10 +289,71 @@ class SeparatingSpirals2d(Scene):
 
         dot_text = always_redraw(get_dot_text)
 
-        self.play(Write(tracked_dot))
         self.play(Write(dot_text))
         self.play(t.animate.set_value(4.4), run_time=3)
         self.play(t.animate.set_value(1.0), run_time=3)
+        self.wait()
+
+        self.play(Write(tracked_dot))
+        self.play(t.animate.set_value(4.4), run_time=3)
+        self.play(t.animate.set_value(1.0), run_time=3)
+        self.wait()
+
+        def get_trans_pos(p):
+            # TODO: change the transform matrix
+            A = np.array([[0.25, 0.5], [0.5, 0.25]])
+            return np.tanh(A @ p + [1, 1])
+
+        trans_dot = Dot(point=initial_point, radius=0.05, color=colors.GRAY)
+        trans_dot.add_updater(
+            lambda x: x.move_to(
+                self.ax.c2p(*get_trans_pos(get_dot_pos(t.get_value())), 0)
+            )
+        )
+
+        def get_trans_text():
+            x, y = get_trans_pos(get_dot_pos(t.get_value()))
+
+            x_text = (
+                MathTex(
+                    f"{x:.2f}",
+                    color=colors.BLACK,
+                    font_size=25,
+                )
+                .next_to(self.vis_model.nodes[1][0], ORIGIN)
+                .set_stroke(width=1)
+            )
+
+            y_text = (
+                MathTex(
+                    f"{y:.2f}",
+                    color=colors.BLACK,
+                    font_size=25,
+                )
+                .next_to(self.vis_model.nodes[1][-1], ORIGIN)
+                .set_stroke(width=1)
+            )
+
+            return VGroup(x_text, y_text)
+
+        trans_text = always_redraw(get_trans_text)
+        trans_dot.z_index = 3
+        self.play(Write(trans_text))
+        self.play(Write(trans_dot))
+        self.play(t.animate.set_value(4.4), run_time=3)
+        self.play(t.animate.set_value(1.0), run_time=3)
+        self.wait()
+
+        # TODO: briefly show what neural network's neurons are and how
+        #       that translates to a matrix multiplication plus a bias
+
+        # for some reason the fill doesn't work on the output node
+        self.play(
+            *[
+                mob.animate.set_stroke(colors.ORANGE, 6).set_fill(colors.DESERT, 0.5)
+                for mob in [self.vis_model.nodes[1][0], *self.vis_model.nodes[0]]
+            ]
+        )
         self.wait()
 
     def transform(self):
@@ -552,7 +634,8 @@ class SeparatingSpirals2dTraining(Scene):
         data = torch.tensor(data, dtype=torch.float32).T
 
         # setting up the model
-        model = TrainingModel().float()
+        # something could go wrong here since I apparently used to call this TrainingModel...
+        model = Spirals2dModel().float()
 
         optimizer = optim.Adam(model.parameters(), lr=1e-2)
         model.requires_grad_(True)

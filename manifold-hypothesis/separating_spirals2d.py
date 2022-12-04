@@ -6,12 +6,32 @@ from modules import *
 import torch
 from torch import optim
 import torch.nn.functional as F
-import numpy as np
-from utils import *
 from pytorch_utils.layer import build_layer_lines
 
 
 config.background_color = colors.WHITE
+
+mul_tex = MathTex(
+    r"\cross",
+    color=colors.BLACK,
+    font_size=25,
+).set_stroke(width=1)
+
+plus_tex = MathTex(
+    r"+",
+    color=colors.BLACK,
+    font_size=25,
+).set_stroke(width=1)
+
+equals_tex = MathTex(
+    r"=",
+    color=colors.BLACK,
+    font_size=25,
+).set_stroke(width=1)
+
+
+# TODO: perhaps put more words in my animations. For example:
+#       put a title at the top indicating what I'm talking about
 
 # TODO: perhaps show how the last transformation both corresponds
 #       to a hyperplane or line separating the classes
@@ -167,13 +187,13 @@ class SeparatingSpirals2d(Scene):
         optimizer = optim.Adam(self.vis_model.parameters(), lr=1e-2)
         self.vis_model.requires_grad_(True)
 
-        for epoch in range(1):
+        for epoch in range(100):
             x, labels = data[:, 0:2], data[:, 2].unsqueeze(1)
             pred = self.vis_model(x)
 
             # updating boundary
             with torch.no_grad():
-                output = self.vis_model(torch.tensor(self.sample_points).float())
+                output = self.vis_model(self.sample_points.float())
                 final_output = torch.sigmoid(output)
                 final_output = final_output >= 0.5
                 # transparent squares color change
@@ -184,14 +204,15 @@ class SeparatingSpirals2d(Scene):
                         self.boundary_rects[i].animate.set_fill(color=color)
                     )
 
-            loss = F.binary_cross_entropy_with_logits(pred, labels)
-            self.play(
-                *animations,
-                run_time=0.01,
-                rate_func=rate_functions.linear,
-            )
+                self.play(
+                    *animations,
+                    run_time=0.01,
+                    rate_func=rate_functions.linear,
+                )
 
-            if i % 1 == 0:
+            loss = F.binary_cross_entropy_with_logits(pred, labels)
+            print_loss_interval = 10
+            if epoch % print_loss_interval == 0:
                 print(f"epoch: {epoch}, loss: {loss.item():.4f}")
 
             optimizer.zero_grad()
@@ -232,7 +253,7 @@ class SeparatingSpirals2d(Scene):
             colors=[colors.GREEN, colors.RED],
             start=RIGHT,
             end=LEFT,
-            inflate_opacities=3,
+            inflate_opacities=1,
         )
 
         self.play(Transform(self.vis_model.lines[0], new_lines))
@@ -347,14 +368,289 @@ class SeparatingSpirals2d(Scene):
         # TODO: briefly show what neural network's neurons are and how
         #       that translates to a matrix multiplication plus a bias
 
-        # for some reason the fill doesn't work on the output node
+        # TODO: consider adding a bounding box similar to first video
+        #       for matrix illustration
+
+        highlight_lines1 = build_layer_lines(
+            self.vis_model.input_nodes,
+            self.vis_model.nodes[1][0],
+            [1, -0.5],
+            colors=[colors.GREEN, colors.RED],
+            start=RIGHT,
+            end=LEFT,
+            inflate_opacities=1,
+            stuck=False,
+            width=8,
+        )
+
+        all_neurons = VGroup(
+            self.vis_model.nodes[:2],
+            self.vis_model.lines[0],
+            highlight_lines1,
+            trans_text,
+            dot_text,
+        )
+
+        # highlighting input neurons and first output neuron
         self.play(
             *[
-                mob.animate.set_stroke(colors.ORANGE, 6).set_fill(colors.DESERT, 0.5)
-                for mob in [self.vis_model.nodes[1][0], *self.vis_model.nodes[0]]
+                node.animate.set_stroke(colors.ORANGE, 6).set_fill(colors.DESERT, 0.5)
+                for node in [self.vis_model.nodes[1][0], *self.vis_model.nodes[0]]
+            ],
+            FadeIn(highlight_lines1),
+        )
+        self.wait()
+
+        self.play(all_neurons.animate.shift(DOWN))
+        self.wait()
+
+        x_text1, y_text1 = get_dot_text()
+        output_x, output_y = get_trans_text()
+
+        self.add(x_text1, y_text1, output_x, output_y)
+
+        self.play(x_text1.animate.shift(2 * UP))
+
+        mul_x_x = mul_tex.copy()
+        mul_x_x.next_to(x_text1, RIGHT, 0.1)
+        # TODO: review the notation to make sure it's consistent with convention
+        w_x_x = (
+            MathTex(
+                r"w_{x}^{x}",
+                color=colors.GREEN,
+                font_size=25,
+            )
+            .next_to(mul_x_x, RIGHT, 0.1)
+            .set_stroke(width=1)
+        )
+
+        self.play(Write(mul_x_x))
+        self.play(Transform(highlight_lines1[0], w_x_x))
+        self.remove(highlight_lines1[0])
+        self.add(w_x_x)
+
+        plus_x = plus_tex.copy()
+        plus_x.next_to(w_x_x, RIGHT)
+        self.play(Write(plus_x))
+
+        self.play(y_text1.animate.next_to(plus_x, RIGHT))
+
+        mul_x_y = mul_tex.copy()
+        mul_x_y.next_to(y_text1, RIGHT, 0.1)
+        self.play(Write(mul_x_y))
+
+        w_x_y = (
+            MathTex(
+                r"w_{x}^{y}",
+                color=colors.RED,
+                font_size=25,
+            )
+            .next_to(mul_x_y, RIGHT, 0.1)
+            .set_stroke(width=1)
+        )
+        self.play(Transform(highlight_lines1[1], w_x_y))
+        self.remove(highlight_lines1[1])
+        self.add(w_x_y)
+
+        # consider here just introducing tanh right away and then just denote it as tanh()
+        non_lin_wrapper1 = VGroup()
+        non_lin_wrapper1.add(
+            MathTex(r"g(", color=colors.BLACK, font_size=25).next_to(
+                x_text1, LEFT, 0.15
+            )
+        )
+        non_lin_wrapper1.add(
+            MathTex(r")", color=colors.BLACK, font_size=25).next_to(w_x_y, RIGHT, 0.15)
+        )
+        non_lin_wrapper1.set_stroke(width=1)
+        self.play(Write(non_lin_wrapper1))
+
+        equal_x = equals_tex.copy()
+        equal_x.next_to(non_lin_wrapper1, RIGHT)
+        self.play(Write(equal_x))
+
+        self.play(output_x.animate.next_to(equal_x, RIGHT))
+
+        self.wait()
+
+        # unhighlighting input neurons and first output neuron
+        self.play(
+            *[
+                node.animate.set_stroke(colors.BLACK, 4).set_fill(opacity=0)
+                for node in [self.vis_model.nodes[1][0], *self.vis_model.nodes[0]]
             ]
         )
         self.wait()
+
+        highlight_lines2 = build_layer_lines(
+            self.vis_model.input_nodes,
+            self.vis_model.nodes[1][1],
+            [0.5, -1],
+            colors=[colors.GREEN, colors.RED],
+            start=RIGHT,
+            end=LEFT,
+            inflate_opacities=1,
+            stuck=False,
+            width=8,
+        )
+        all_neurons.add(highlight_lines2)
+
+        # highlighting input neurons and second output neuron
+        self.play(
+            *[
+                node.animate.set_stroke(colors.ORANGE, 6).set_fill(colors.DESERT, 0.5)
+                for node in [self.vis_model.nodes[1][1], *self.vis_model.nodes[0]]
+            ],
+            FadeIn(highlight_lines2),
+        )
+
+        x_text2, y_text2 = get_dot_text()
+
+        self.add(x_text2, y_text2)
+
+        self.play(x_text2.animate.shift(1.5 * UP))
+
+        mul_y_x = mul_tex.copy()
+        mul_y_x.next_to(x_text2, RIGHT, 0.1)
+        self.play(Write(mul_y_x))
+
+        # TODO: review the notation to make sure it's consistent with convention
+        w_y_x = (
+            MathTex(
+                r"w_{y}^{x}",
+                color=colors.GREEN,
+                font_size=25,
+            )
+            .next_to(mul_y_x, RIGHT, 0.1)
+            .set_stroke(width=1)
+        )
+        self.play(Transform(highlight_lines2[0], w_y_x))
+        self.remove(highlight_lines2[0])
+        self.add(w_y_x)
+
+        plus_y = plus_tex.copy()
+        plus_y.next_to(w_y_x, RIGHT)
+        self.play(Write(plus_y))
+
+        self.play(y_text2.animate.next_to(plus_y, RIGHT))
+
+        mul_y_y = mul_tex.copy()
+        mul_y_y.next_to(y_text2, RIGHT, 0.1)
+        self.play(Write(mul_y_y))
+
+        w_y_y = (
+            MathTex(
+                r"w_{y}^{y}",
+                color=colors.RED,
+                font_size=25,
+            )
+            .next_to(mul_y_y, RIGHT, 0.1)
+            .set_stroke(width=1)
+        )
+        self.play(Transform(highlight_lines2[1], w_y_y))
+        self.remove(highlight_lines2[1])
+        self.add(w_y_y)
+
+        # consider here just introducing tanh right away and then just denote it as tanh()
+        # also consider putting this inside a function since I've used it 3 times
+        non_lin_wrapper2 = VGroup()
+        non_lin_wrapper2.add(
+            MathTex(r"g(", color=colors.BLACK, font_size=25).next_to(
+                x_text2, LEFT, 0.15
+            )
+        )
+        non_lin_wrapper2.add(
+            MathTex(r")", color=colors.BLACK, font_size=25).next_to(w_y_y, RIGHT, 0.15)
+        )
+        non_lin_wrapper2.set_stroke(width=1)
+        self.play(Write(non_lin_wrapper2))
+
+        equal_y = equals_tex.copy()
+        equal_y.next_to(non_lin_wrapper2, RIGHT)
+        self.play(Write(equal_y))
+
+        self.play(output_y.animate.next_to(equal_y, RIGHT))
+
+        # unhighlighting input neurons and second output neuron
+        self.play(
+            *[
+                node.animate.set_stroke(colors.BLACK, 4).set_fill(opacity=0)
+                for node in [self.vis_model.nodes[1][1], *self.vis_model.nodes[1]]
+            ]
+        )
+        self.wait()
+
+        x_text1_frame = SurroundingRectangle(x_text1, colors.ORANGE, buff=0.05)
+        x_text2_frame = SurroundingRectangle(x_text2, colors.ORANGE, buff=0.05)
+        y_text1_frame = SurroundingRectangle(y_text1, colors.DARK_RED, buff=0.05)
+        y_text2_frame = SurroundingRectangle(y_text2, colors.DARK_RED, buff=0.05)
+        frames = VGroup(x_text1_frame, x_text2_frame, y_text1_frame, y_text2_frame)
+
+        self.play(Write(frames))
+        self.wait()
+
+        mobs_to_remove = VGroup(
+            mul_x_x, mul_x_y, mul_y_x, mul_y_y, plus_x, plus_y, frames
+        )
+        self.play(FadeOut(mobs_to_remove))
+
+        self.wait()
+        self.play(
+            x_text1.animate.next_to(w_x_y, ORIGIN),
+            x_text2.animate.next_to(w_x_y, ORIGIN),
+            y_text1.animate.next_to(w_y_y, ORIGIN),
+            y_text2.animate.next_to(w_y_y, ORIGIN),
+            w_x_y.animate.next_to(w_x_x, RIGHT),
+            w_y_y.animate.next_to(w_y_x, RIGHT),
+        )
+        self.remove(x_text2, y_text2)
+
+        weights = VGroup(w_x_x, w_x_y, w_y_x, w_y_y)
+        weight_brackets = add_brackets(weights).set_color(colors.BLACK)
+        weight_matrix = VGroup(weights, weight_brackets)
+
+        inputs = VGroup(x_text1, y_text1)
+        self.play(inputs.animate.next_to(weights, 1.5 * RIGHT))
+        input_brackets = add_brackets(inputs).set_color(colors.BLACK)
+        input_vector = VGroup(inputs, input_brackets)
+
+        self.play(Write(weight_brackets))
+        self.play(Write(input_brackets))
+
+        # consider here just introducing tanh right away and then just denote it as tanh()
+        non_lin_brackets = add_brackets(
+            VGroup(weight_matrix, input_vector), "curved"
+        ).set_color(colors.BLACK)
+
+        non_lin_wrapper3 = VGroup(
+            MathTex(r"g", color=colors.BLACK, font_size=25)
+            .set_stroke(width=1)
+            .next_to(non_lin_brackets, LEFT, 0.15),
+            non_lin_brackets,
+        )
+        self.play(
+            Transform(VGroup(non_lin_wrapper1, non_lin_wrapper2), non_lin_wrapper3)
+        )
+
+        equals_final = equals_tex.copy().next_to(non_lin_wrapper3, RIGHT, 0.25)
+        self.play(Transform(VGroup(equal_x, equal_y), equals_final))
+
+        outputs = VGroup(output_x, output_y)
+        self.play(outputs.animate.next_to(equals_final, 1.5 * RIGHT))
+        output_brackets = add_brackets(outputs).set_color(colors.BLACK)
+        output_vector = VGroup(outputs, output_brackets)
+        self.play(Write(output_brackets))
+
+        self.wait()
+
+        # TODO: make sure everything is lined up and sized properly
+        #       also consider adding a background box
+
+        # TODO: give a brief explanation to how matrix multiplication
+        #       is a linear transformation
+
+        # TODO: make a small graph that pops up basically showing what tanh is
+        #       and then subtitute g for tanh from now on
 
     def transform(self):
 
@@ -448,6 +744,9 @@ class SeparatingSpirals2d(Scene):
             # *new_grid,
             rate_func=rate_functions.linear,
         )
+
+        # TODO: show the boundary separation in 3D as well
+        #       remember that the normal vector to the hyper plane is just that last matrix multiply
 
     # this part seems to not work at all...
     def reverse_transform(self):
@@ -565,379 +864,5 @@ class SeparatingSpirals2d(Scene):
                 run_time=3,
                 rate_func=rate_functions.linear,
             )
-
-        self.wait(2)
-
-
-class SeparatingSpirals2dTraining(Scene):
-    def construct(self):
-        self.camera.background_color = colors.WHITE
-        x_range = [-2.5, 2.5, 0.5]
-        y_range = [-2.5, 2.5, 0.5]
-
-        # here what I actually want is multiple axis arranged in a grid (use .arrange(rows, cols))
-        # each grid will be for a particular layer
-
-        # ALSO SHOW HOW THE BOUNDARY CHANGES WITH TIME!
-
-        ax_grid = VGroup()
-        for i in range(8):
-            ax = Axes(
-                x_range=x_range,
-                y_range=y_range,
-                x_length=10 / 3,
-                y_length=10 / 3,
-                tips=False,
-                axis_config={"tick_size": 0.05},
-            ).set_stroke(color=colors.BLACK)
-            ax_grid.add(ax)
-        ax_grid.arrange_in_grid(2, buff=0.05)
-
-        t = np.arange(1, 5, 0.05)
-        array1 = (np.array([np.cos(t), np.sin(t)]) * t).T * 0.5
-        array2 = (np.array([np.cos(t + np.pi), np.sin(t + np.pi)]) * t).T * 0.5
-
-        self.layers = []
-
-        dots_all = VGroup()
-        for ax in ax_grid:
-            dots1 = VGroup(
-                *[
-                    Dot(ax.c2p(*point), radius=0.04, color=colors.PURPLE)
-                    for point in array1
-                ]
-            )
-
-            dots2 = VGroup(
-                *[
-                    Dot([ax.c2p(*point)], radius=0.04, color=colors.RED)
-                    for point in array2
-                ]
-            )
-            dots_all.add(VGroup(dots1, dots2))
-
-        self.play(Write(VGroup(ax_grid)))
-
-        # setting up data for training
-        labels1 = np.ones(len(array1)).reshape(-1, 1)
-        labels2 = np.zeros(len(array2)).reshape(-1, 1)
-
-        class1_data = np.concatenate(
-            (array1.T, labels1.T, np.arange(len(array1)).reshape(1, -1)), axis=0
-        )
-        class2_data = np.concatenate(
-            (array2.T, labels2.T, np.arange(len(array2)).reshape(1, -1)), axis=0
-        )
-
-        # consider adding a shuffling mechanism
-        data = np.concatenate((class1_data, class2_data), axis=1)
-        data = torch.tensor(data, dtype=torch.float32).T
-
-        # setting up the model
-        # something could go wrong here since I apparently used to call this TrainingModel...
-        model = Spirals2dModel().float()
-
-        optimizer = optim.Adam(model.parameters(), lr=1e-2)
-        model.requires_grad_(True)
-
-        # getting the initial position
-        x, labels, indices = (
-            data[:, 0:2],
-            data[:, 2].unsqueeze(1),
-            data[:, 3].unsqueeze(1),
-        )
-        pred, hidden_out = model(x)
-        with torch.no_grad():
-            for ax, dots, layer_num in zip(ax_grid, dots_all, range(8)):
-                layer = hidden_out[layer_num].numpy()
-                for h_out, label, i in zip(layer, labels, indices):
-                    if label == 0:
-                        dots[0][int(i.item())].move_to(ax.c2p(*h_out))
-                    else:
-                        dots[1][int(i.item())].move_to(ax.c2p(*h_out))
-
-        self.play(Write(dots_all))
-
-        # training loop
-        for epoch in range(200):
-            x, labels, indices = (
-                data[:, 0:2],
-                data[:, 2].unsqueeze(1),
-                data[:, 3].unsqueeze(1),
-            )
-            pred, hidden_out = model(x)
-            loss = F.binary_cross_entropy_with_logits(pred, labels)
-            with torch.no_grad():
-                animations = []
-                for ax, dots, layer_num in zip(ax_grid, dots_all, range(8)):
-                    layer = hidden_out[layer_num].numpy()
-                    for h_out, label, i in zip(layer, labels, indices):
-                        if label == 0:
-                            animations.append(
-                                dots[0][int(i.item())].animate.move_to(ax.c2p(*h_out))
-                            )
-                        else:
-                            animations.append(
-                                dots[1][int(i.item())].animate.move_to(ax.c2p(*h_out))
-                            )
-
-                if epoch % 1 == 0:
-                    print(f"epoch: {epoch}, loss: {loss.item():.4f}")
-            self.play(*animations, run_time=0.005, rate_func=linear)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        self.wait(2)
-
-
-class SeparatingSpirals3d(ThreeDScene):
-    def construct(self):
-        self.camera.background_color = colors.WHITE
-        self.set_camera_orientation(phi=75 * DEGREES, theta=-45 * DEGREES)
-
-        x_range = [-2.5, 2.5, 0.5]
-        y_range = [-2.5, 2.5, 0.5]
-
-        ax = ThreeDAxes(
-            x_range=x_range,
-            y_range=y_range,
-            x_length=7,
-            y_length=7,
-            tips=False,
-        ).set_stroke(color=colors.BLACK)
-
-        (inner_dots, inner_array), (
-            outer_dots,
-            outer_array,
-        ) = generate_outer_inner_circles(ax, 100)
-
-        self.begin_ambient_camera_rotation(-0.1)
-
-        self.play(Write(ax))
-        self.play(Write(inner_dots))
-        self.play(Write(outer_dots))
-
-        # linear transformation
-
-        W1 = np.array(
-            [
-                [-1.3335, -1.3497],
-                [-0.2760, 1.2892],
-                [1.6805, -0.7282],
-            ],
-        )
-        b1 = np.array([-0.8905, -0.5729, -0.8609])
-
-        W2 = np.array(
-            [
-                [1.3766, 0.8067, 1.3736],
-                [0.9967, 1.8312, 1.1230],
-                [0.9773, 1.3226, 0.9705],
-            ],
-        )
-        b2 = np.array([1.4654, 1.6515, 1.4718])
-
-        W3 = np.array(
-            [
-                [-1.1099, -1.3832, -1.7226],
-                [-1.3346, -1.3959, -0.7877],
-                [1.1106, 1.2383, 2.1721],
-            ],
-        )
-        b3 = np.array([-0.5693, -0.5870, 0.5870])
-
-        W4 = np.array(
-            [
-                [1.3508, 1.4681, -1.7920],
-                [1.5001, 1.6317, -1.4644],
-                [1.6393, 1.1556, -2.1791],
-            ],
-        )
-        b4 = np.array([-0.0351, -0.0561, -0.0393])
-
-        weights = [W1, W2, W3, W4]
-        biases = [b1, b2, b3, b4]
-
-        activ_funcs = [
-            np.tanh,
-            np.tanh,
-            np.tanh,
-        ]
-
-        for w, b, f in zip(weights, biases, activ_funcs):
-
-            # linear transform
-            inner_array = inner_array @ w.T
-            outer_array = outer_array @ w.T
-
-            inner_anim = [
-                dot.animate.move_to(ax.c2p(*pos))
-                for dot, pos in zip(inner_dots, inner_array)
-            ]
-            outer_anim = [
-                dot.animate.move_to(ax.c2p(*pos))
-                for dot, pos in zip(outer_dots, outer_array)
-            ]
-
-            self.play(*inner_anim, *outer_anim, run_time=3, rate_func=linear)
-
-            # translation
-            inner_array = inner_array + b
-            outer_array = outer_array + b
-
-            inner_anim = [
-                dot.animate.move_to(ax.c2p(*pos))
-                for dot, pos in zip(inner_dots, inner_array)
-            ]
-            outer_anim = [
-                dot.animate.move_to(ax.c2p(*pos))
-                for dot, pos in zip(outer_dots, outer_array)
-            ]
-
-            self.play(*inner_anim, *outer_anim, run_time=3, rate_func=linear)
-
-            # nonlinearity
-            inner_array = f(inner_array)
-            outer_array = f(outer_array)
-
-            inner_anim = [
-                dot.animate.move_to(ax.c2p(*pos))
-                for dot, pos in zip(inner_dots, inner_array)
-            ]
-            outer_anim = [
-                dot.animate.move_to(ax.c2p(*pos))
-                for dot, pos in zip(outer_dots, outer_array)
-            ]
-
-            self.play(*inner_anim, *outer_anim, run_time=3, rate_func=linear)
-
-        self.wait(2)
-
-
-class SeparatingSpirals3dTraining(ThreeDScene):
-    def construct(self):
-        x_range = [-2.5, 2.5, 0.5]
-        y_range = [-2.5, 2.5, 0.5]
-        z_range = [-2.5, 2.5, 0.5]
-
-        self.set_camera_orientation(phi=75 * DEGREES)
-
-        # each axes here is represents a layer
-        ax_grid = VGroup()
-        for i in range(8):
-            ax = ThreeDAxes(
-                x_range=x_range,
-                y_range=y_range,
-                z_range=z_range,
-                x_length=10 / 3,
-                y_length=10 / 3,
-                z_length=10 / 3,
-                tips=False,
-                axis_config={"tick_size": 0.05},
-            ).set_stroke(color=colors.BLACK)
-            ax_grid.add(ax)
-        ax_grid.arrange_in_grid(2, buff=0.05)
-
-        t = np.arange(1, 5, 0.1)
-        array1 = (np.array([np.cos(t), np.sin(t)]) * t).T * 0.5
-        array2 = (np.array([np.cos(t + np.pi), np.sin(t + np.pi)]) * t).T * 0.5
-
-        self.layers = []
-
-        dots_all = Group()
-        for ax in ax_grid:
-            dots1 = Group(
-                *[
-                    Dot3D(ax.c2p(*point, 0), radius=0.04, color=colors.PURPLE)
-                    for point in array1
-                ]
-            )
-
-            dots2 = Group(
-                *[
-                    Dot3D([ax.c2p(*point, 0)], radius=0.04, color=colors.RED)
-                    for point in array2
-                ]
-            )
-            dots_all.add(Group(dots1, dots2))
-
-        self.play(FadeIn(Group(ax_grid)))
-
-        # setting up data for training
-        labels1 = np.ones(len(array1)).reshape(-1, 1)
-        labels2 = np.zeros(len(array2)).reshape(-1, 1)
-
-        class1_data = np.concatenate(
-            (array1.T, labels1.T, np.arange(len(array1)).reshape(1, -1)), axis=0
-        )
-        class2_data = np.concatenate(
-            (array2.T, labels2.T, np.arange(len(array2)).reshape(1, -1)), axis=0
-        )
-
-        # consider adding a shuffling mechanism
-        data = np.concatenate((class1_data, class2_data), axis=1)
-        data = torch.tensor(data, dtype=torch.float32).T
-
-        # setting up the model
-        model = Model().float()
-
-        optimizer = optim.Adam(model.parameters(), lr=1e-2)
-        model.requires_grad_(True)
-
-        # getting the initial position
-        x, labels, indices = (
-            data[:, 0:2],
-            data[:, 2].unsqueeze(1),
-            data[:, 3].unsqueeze(1),
-        )
-        pred, hidden_out = model(x)
-        with torch.no_grad():
-            for ax, dots, layer_num in zip(ax_grid, dots_all, range(8)):
-                layer = hidden_out[layer_num].numpy()
-                for h_out, label, i in zip(layer, labels, indices):
-                    if label == 0:
-                        dots[0][int(i.item())].move_to(ax.c2p(*h_out))
-                    else:
-                        dots[1][int(i.item())].move_to(ax.c2p(*h_out))
-
-        self.play(FadeIn(dots_all))
-
-        # self.begin_ambient_camera_rotation(-0.1)
-
-        # training loop
-        for epoch in range(50):
-            x, labels, indices = (
-                data[:, 0:2],
-                data[:, 2].unsqueeze(1),
-                data[:, 3].unsqueeze(1),
-            )
-            pred, hidden_out = model(x)
-            loss = F.binary_cross_entropy_with_logits(pred, labels)
-            with torch.no_grad():
-                animations = []
-                for ax, dots, layer_num in zip(ax_grid, dots_all, range(8)):
-                    layer = hidden_out[layer_num].numpy()
-                    for h_out, label, i in zip(layer, labels, indices):
-                        if label == 0:
-                            animations.append(
-                                dots[0][int(i.item())].animate.move_to(ax.c2p(*h_out))
-                            )
-                        else:
-                            animations.append(
-                                dots[1][int(i.item())].animate.move_to(ax.c2p(*h_out))
-                            )
-
-                if epoch % 1 == 0:
-                    print(f"epoch: {epoch}, loss: {loss.item():.4f}")
-            rotation_animations = [Rotate(ax, 0.0025 * TAU, UP) for ax in ax_grid]
-            self.play(
-                *rotation_animations, *animations, run_time=0.005, rate_func=linear
-            )
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
 
         self.wait(2)

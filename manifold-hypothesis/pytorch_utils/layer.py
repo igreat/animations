@@ -49,7 +49,7 @@ class Layer:
                 self.biases[i].set_value(bias.item())
                 i += 1
 
-        # consider turning this into an array of Values
+        # TODO: consider turning this into an array of Values
         self.node_opacities = [0] * output_dim
 
         self.nodes = VGroup(
@@ -121,6 +121,7 @@ def build_layer_lines(
     end=ORIGIN,
     always_back=False,
     inflate_opacities=1,
+    width=4,
 ) -> VGroup:
     # this builds a single line between two mobjects
 
@@ -146,13 +147,15 @@ def build_layer_lines(
                 if dotted:
                     connection_lines.add(
                         DashedLine(point1, point2, color=color).set_stroke(
-                            opacity=clip(abs(inflate_opacities * opacity), 0, 1)
+                            width=width,
+                            opacity=clip(abs(inflate_opacities * opacity), 0, 1),
                         )
                     )
                 else:
                     connection_lines.add(
                         Line(point1, point2, color=color).set_stroke(
-                            opacity=clip(abs(inflate_opacities * opacity), 0, 1)
+                            width=width,
+                            opacity=clip(abs(inflate_opacities * opacity), 0, 1),
                         )
                     )
                 i += 1

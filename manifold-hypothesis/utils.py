@@ -88,3 +88,17 @@ def leaky_relu(x):
 def leaky_relu_inv(x, negative_slope=0.01):
     x = torch.tensor(x)
     return torch.minimum(1 / negative_slope * x, x).numpy()
+
+
+# code modified from https://financial-engineering.medium.com/manim-add-brackets-584563675923
+def add_brackets(mobj, shape="square"):
+    shapes = {
+        "square": Tex("\\big[", "\\big]"),
+        "curved": Tex("\\big(", "\\big)"),
+    }
+    bracket_pair = shapes[shape]
+    bracket_pair.stretch_to_fit_height(mobj.get_height() + 0.2)
+    l_bracket, r_bracket = bracket_pair.split()
+    l_bracket.next_to(mobj, LEFT, 0.005)
+    r_bracket.next_to(mobj, RIGHT, 0.005)
+    return VGroup(l_bracket, r_bracket)

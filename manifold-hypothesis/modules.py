@@ -162,7 +162,7 @@ class VisualizationModel(nn.Module):
         # maybe turn the color of the nodes into a Value object
         input_length = 2
         self.input_nodes = VGroup(
-            *[Circle(radius=0.25, color=colors.BLACK) for _ in range(2)]
+            *[Circle(radius=0.25, color=colors.BLACK) for _ in range(input_length)]
         )
         self.input_nodes.arrange(DOWN).move_to([-6, 0, 0])
 
@@ -225,6 +225,9 @@ class VisualizationModel(nn.Module):
         outputs.append(torch.tanh(x.detach()))
 
         with torch.no_grad():
+            # TODO: consider making this functionality inside each layer
+            #       where each layer has a "value" attribute that maps to the nodes
+
             # the activations shown are of a random point in the batch
             point = random.randint(0, len(x) - 1)
             for layer, opacity in zip(self.layers, outputs):

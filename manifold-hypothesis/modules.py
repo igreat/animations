@@ -9,17 +9,18 @@ import random
 
 
 class Grid(VGroup):
-    def __init__(self, axes, x_range, y_range, *vmobjects, **kwargs):
+    def __init__(self, axes, x_range, y_range, lattice_radius=0, *vmobjects, **kwargs):
         super().__init__(*vmobjects, **kwargs)
         self.submobjects = VGroup()
         self.grid_2d = []
         positions = []
+        # TODO; fix bug for non-square grid
         y_range[1] += y_range[2]
         x_range[1] += x_range[2]
         for y in np.arange(*y_range):
             row = []
             for x in np.arange(*x_range):
-                point = Dot(axes.c2p(x, y), 0)
+                point = Dot(axes.c2p(x, y), lattice_radius, color=colors.BLACK)
                 row.append(point)
                 self.submobjects.add(point)
                 positions.append([x, y])
@@ -28,9 +29,9 @@ class Grid(VGroup):
 
         self.grid_lines = VGroup()
 
+        # building the horizontal lines
         for i in range(len(self.grid_2d[0])):
-            for j in range(len(self.grid_2d[1]) - 1):
-
+            for j in range(len(self.grid_2d) - 1):
                 line = Line(color=colors.BLACK)
                 line.add_updater(
                     lambda m, dt, i=i, j=j: m.set_points_by_ends(
@@ -41,10 +42,9 @@ class Grid(VGroup):
                 self.grid_lines.add(line)
 
         self.array = np.array(positions)
-
-        for j in range(len(self.grid_2d[1])):
+        # building the vertical lines
+        for j in range(len(self.grid_2d)):
             for i in range(len(self.grid_2d[0]) - 1):
-
                 line = Line(color=colors.BLACK)
                 line.add_updater(
                     lambda m, dt, i=i, j=j: m.set_points_by_ends(
@@ -54,8 +54,11 @@ class Grid(VGroup):
                 )
                 self.grid_lines.add(line)
 
+        print("Grid created")
+
 
 class DotsPlot(VGroup, metaclass=ConvertToOpenGL):
+    # I initially used this to do reverse transformations, but I already gave up on that
     def __init__(self, ax, func, start, end, num_points, *vmobjects, **kwargs):
         VGroup.__init__(self, **kwargs)
 

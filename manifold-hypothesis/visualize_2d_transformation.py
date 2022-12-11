@@ -6,6 +6,10 @@ from modules import Grid
 
 config.background_color = colors.WHITE
 
+# TODO: accompany each transformation with the notation of the transformation
+#       for example, the matrix followed by tanh would be written as tanh(A @ x)
+#       and perhaps also add titles to each transformation
+
 
 class VisualizeTransformation(Scene):
     def construct(self):
@@ -267,12 +271,12 @@ class ReLUGraph(Scene):
         self.play(Unwrite(full_graph), Unwrite(dot_text))
 
 
-class TranslationTransformation(Scene):
+class AffineTransformation(Scene):
     def construct(self):
-        self.build_translation_transformation()
+        self.affine_transform()
         self.wait()
 
-    def build_translation_transformation(self):
+    def affine_transform(self):
         # build the translation transformation
         ax = Axes(
             x_range=[-6, 6, 2],
@@ -341,12 +345,52 @@ class TranslationTransformation(Scene):
         self.wait()
 
         # applying a second translation to the grid
-        grid.array = grid.array + [-3, -1]
+        grid.array = grid.array + [-3, -2]
         new_grid = [
             dot.animate.move_to(ax.c2p(*pos))
             for dot, pos in zip(grid.submobjects, grid.array)
         ]
-        new_x, new_y = x_tracker.get_value() - 3, y_tracker.get_value() - 1
+        new_x, new_y = x_tracker.get_value() - 3, y_tracker.get_value() - 2
+        self.play(
+            x_tracker.animate.set_value(new_x),
+            y_tracker.animate.set_value(new_y),
+            *new_grid,
+            run_time=3,
+        )
+        self.wait()
+
+        # applying a second translation to the grid
+        grid.array = grid.array + [3, 3]
+        new_grid = [
+            dot.animate.move_to(ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid.array)
+        ]
+        new_x, new_y = x_tracker.get_value() + 3, y_tracker.get_value() + 3
+        self.play(
+            x_tracker.animate.set_value(new_x),
+            y_tracker.animate.set_value(new_y),
+            *new_grid,
+            run_time=3,
+        )
+        self.wait()
+
+        # matrix A performs a sheer transformation
+        A = np.array([[1, 1], [0, 1]])
+        # matrix B performs a rotation
+        B = np.array([[0, -1], [1, 0]])
+        # sheer and rotation
+        C = A @ B
+
+        # applying C to the x and y trackers
+        new_vector = np.array([x_tracker.get_value(), y_tracker.get_value()]) @ C
+        new_x, new_y = new_vector[0], new_vector[1]
+
+        # apply the transformation to the grid
+        grid.array = grid.array @ C
+        new_grid = [
+            dot.animate.move_to(ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid.array)
+        ]
         self.play(
             x_tracker.animate.set_value(new_x),
             y_tracker.animate.set_value(new_y),

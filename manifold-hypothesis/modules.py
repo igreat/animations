@@ -14,7 +14,7 @@ class Grid(VGroup):
         self.submobjects = VGroup()
         self.grid_2d = []
         positions = []
-        # TODO; fix bug for non-square grid
+        # TODO; fix bug for non-equal x and y ranges
         y_range[1] += y_range[2]
         x_range[1] += x_range[2]
         for y in np.arange(*y_range):
@@ -53,8 +53,6 @@ class Grid(VGroup):
                     )
                 )
                 self.grid_lines.add(line)
-
-        print("Grid created")
 
 
 class DotsPlot(VGroup, metaclass=ConvertToOpenGL):

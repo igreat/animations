@@ -265,3 +265,95 @@ class ReLUGraph(Scene):
         self.wait()
         dot_text.clear_updaters()
         self.play(Unwrite(full_graph), Unwrite(dot_text))
+
+
+class TranslationTransformation(Scene):
+    def construct(self):
+        self.build_translation_transformation()
+        self.wait()
+
+    def build_translation_transformation(self):
+        # build the translation transformation
+        ax = Axes(
+            x_range=[-6, 6, 2],
+            y_range=[-6, 6, 2],
+            tips=False,
+            x_axis_config={
+                "unit_size": 0.5,
+                "numbers_to_include": np.arange(-4, 6, 2),
+                "font_size": 20,
+            },
+            y_axis_config={
+                "unit_size": 0.5,
+                "numbers_to_include": np.arange(-4, 6, 2),
+                "font_size": 20,
+            },
+        ).set_stroke(color=colors.BLACK)
+
+        ax.get_axis(0).numbers.set_color(colors.BLACK).set_stroke(width=1)
+        ax.get_axis(1).numbers.set_color(colors.BLACK).set_stroke(width=1)
+
+        ax_border = Rectangle(width=ax.x_length, height=ax.y_length).set_stroke(
+            color=colors.BLACK, width=4
+        )
+
+        grid = Grid(ax, [-6, 6, 0.5], [-6, 6, 1], lattice_radius=0.04)
+        labels = ax.get_axis_labels(x_label=Tex("x"), y_label=Tex("y"))
+
+        x_tracker = ValueTracker(0)
+        y_tracker = ValueTracker(0)
+        initial_point = [ax.c2p(x_tracker.get_value(), y_tracker.get_value())]
+        dot = Dot(point=initial_point, radius=0.08, color=colors.PURPLE)
+        dot.add_updater(
+            lambda x: x.move_to(ax.c2p(x_tracker.get_value(), y_tracker.get_value(), 0))
+        )
+
+        def get_dot_text():
+            return Text(
+                f"({x_tracker.get_value():.2f}, {y_tracker.get_value():.2f})",
+                color=colors.RED,
+                font="Fira Code",
+                weight=BOLD,
+                font_size=15,
+            )
+
+        dot_text = always_redraw(get_dot_text)
+        dot_text.add_updater(lambda x: x.move_to(dot.get_center() + UP * 0.25))
+
+        full_graph = VGroup(ax, labels, grid, dot)
+
+        self.play(Write(full_graph), Write(ax_border))
+        self.play(Write(dot_text))
+        full_graph.add(dot_text)
+
+        # applying a translation to the grid
+        grid.array = grid.array + [3, 2]
+        new_grid = [
+            dot.animate.move_to(ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid.array)
+        ]
+        self.play(
+            x_tracker.animate.set_value(3),
+            y_tracker.animate.set_value(2),
+            *new_grid,
+            run_time=3,
+        )
+        self.wait()
+
+        # applying a second translation to the grid
+        grid.array = grid.array + [-3, -1]
+        new_grid = [
+            dot.animate.move_to(ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid.array)
+        ]
+        new_x, new_y = x_tracker.get_value() - 3, y_tracker.get_value() - 1
+        self.play(
+            x_tracker.animate.set_value(new_x),
+            y_tracker.animate.set_value(new_y),
+            *new_grid,
+            run_time=3,
+        )
+        self.wait()
+        dot_text.clear_updaters()
+        self.play(FadeOut(full_graph), FadeOut(dot_text))
+        self.play(Unwrite(ax_border))

@@ -84,10 +84,11 @@ class TanhGraph(Scene):
         ).set_stroke(color=colors.BLACK)
 
         tanh_text = (
-            MathTex(r"\tanh(x)", color=colors.BLACK)
+            MathTex(r"\tanh(x)=\frac{e^x - e^{-x}}{e^x + e^{-x}}", color=colors.BLACK)
             .set_stroke(width=1)
+            .scale(0.8)
             .move_to(ax.get_corner(UL))
-            .shift(DR + RIGHT * 0.5)
+            .shift(DR * 0.7 + RIGHT * 2)
         )
 
         ax.get_axis(0).numbers.set_color(colors.BLACK).set_stroke(width=1)
@@ -348,12 +349,12 @@ class LeakyReLUGraph(Scene):
         self.play(Unwrite(full_graph), Unwrite(dot_text))
 
 
-class AffineTransformation(Scene):
+class AffineNonLinearTransform(Scene):
     def construct(self):
-        self.affine_transform()
+        self.affine_nonlinear_transform()
         self.wait()
 
-    def affine_transform(self):
+    def affine_nonlinear_transform(self):
         # build the translation transformation
         ax = Axes(
             x_range=[-6, 6, 2],
@@ -386,7 +387,7 @@ class AffineTransformation(Scene):
             MathTex(r"x + b", color=colors.WHITE)
             .set_stroke(width=1)
             .move_to(ax.get_corner(UL))
-            .shift(RIGHT * 1.5 + DOWN * 0.5)
+            .shift(RIGHT * 1.8 + DOWN * 0.5)
         )
         translation_text.z_index = 3
 
@@ -394,7 +395,7 @@ class AffineTransformation(Scene):
         translation_text_box = (
             RoundedRectangle(
                 height=translation_text.height * 2 + 0.1,
-                width=translation_text.width * 2.5 + 0.1,
+                width=translation_text.width * 2.8 + 0.3,
                 corner_radius=0.2,
             )
             .set_fill(color=colors.BLACK, opacity=0.75)
@@ -464,7 +465,7 @@ class AffineTransformation(Scene):
             MathTex(r"Wx + b", color=colors.WHITE)
             .set_stroke(width=1)
             .move_to(ax.get_corner(UL))
-            .shift(RIGHT * 1.5 + DOWN * 0.5)
+            .shift(RIGHT * 1.8 + DOWN * 0.5)
         )
 
         # matrix A performs a sheer transformation
@@ -502,6 +503,31 @@ class AffineTransformation(Scene):
             for dot, pos in zip(grid.submobjects, grid.array)
         ]
         new_x, new_y = x_tracker.get_value() + 3, y_tracker.get_value() + 3
+        self.play(
+            x_tracker.animate.set_value(new_x),
+            y_tracker.animate.set_value(new_y),
+            *new_grid,
+            run_time=3,
+        )
+        self.wait()
+
+        # transform the text to include a tanh function
+        tanh_text = (
+            MathTex(r"\tanh(Wx + b)", color=colors.WHITE)
+            .set_stroke(width=1)
+            .move_to(ax.get_corner(UL))
+            .shift(RIGHT * 1.8 + DOWN * 0.5)
+        )
+        self.play(Transform(translation_text, tanh_text))
+        self.wait()
+
+        # perform tanh transformation on the grid
+        grid.array = np.tanh(grid.array)
+        new_grid = [
+            dot.animate.move_to(ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid.array)
+        ]
+        new_x, new_y = np.tanh(x_tracker.get_value()), np.tanh(y_tracker.get_value())
         self.play(
             x_tracker.animate.set_value(new_x),
             y_tracker.animate.set_value(new_y),

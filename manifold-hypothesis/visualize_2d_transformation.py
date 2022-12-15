@@ -11,7 +11,7 @@ config.background_color = colors.WHITE
 #       and perhaps also add titles to each transformation
 
 
-class VisualizeTransformation(Scene):
+class LinearTransformation(Scene):
     def construct(self):
         self.linear_transfom()
         self.wait()
@@ -224,10 +224,11 @@ class ReLUGraph(Scene):
         ).set_stroke(color=colors.BLACK)
 
         relu_text = (
-            MathTex(r"\text{ReLU}(x)", color=colors.BLACK)
+            MathTex(r"\text{relu}(x)=\text{max}(0, x)", color=colors.BLACK)
             .set_stroke(width=1)
+            .scale(0.8)
             .move_to(ax.get_corner(UL))
-            .shift(DR + RIGHT * 0.5)
+            .shift(DR * 0.7 + RIGHT * 1.8)
         )
 
         ax.get_axis(0).numbers.set_color(colors.BLACK).set_stroke(width=1)
@@ -259,6 +260,82 @@ class ReLUGraph(Scene):
         dot_text.add_updater(lambda x: x.next_to(dot, UR))
 
         full_graph = VGroup(ax, labels, graph, dot, relu_text)
+
+        self.play(Write(full_graph), Write(self.ax_border))
+        self.play(Write(dot_text))
+        full_graph.add(dot_text)
+        self.play(t.animate.set_value(3), run_time=3)
+        self.wait()
+        self.play(t.animate.set_value(-3), run_time=3)
+        self.wait()
+        dot_text.clear_updaters()
+        self.play(Unwrite(full_graph), Unwrite(dot_text))
+
+
+class LeakyReLUGraph(Scene):
+    def construct(self):
+        self.build_leaky_relu_graph()
+        self.wait()
+
+    def build_leaky_relu_graph(self):
+        # build the leaky relu graph
+        ax = Axes(
+            x_range=[-6, 6, 2],
+            y_range=[-6, 6, 2],
+            tips=False,
+            x_axis_config={
+                "unit_size": 0.5,
+                "numbers_to_include": np.arange(-4, 6, 2),
+                "font_size": 20,
+            },
+            y_axis_config={
+                "unit_size": 0.5,
+                "numbers_to_include": np.arange(-4, 6, 2),
+                "font_size": 20,
+            },
+        ).set_stroke(color=colors.BLACK)
+
+        leaky_relu_text = (
+            MathTex(r"\text{leaky\_relu}(x)=\text{max}(ax, x)", color=colors.BLACK)
+            .set_stroke(width=1)
+            .scale(0.8)
+            .move_to(ax.get_corner(UL))
+            .shift(DR * 0.7 + RIGHT * 2)
+        )
+
+        ax.get_axis(0).numbers.set_color(colors.BLACK).set_stroke(width=1)
+        ax.get_axis(1).numbers.set_color(colors.BLACK).set_stroke(width=1)
+
+        self.ax_border = Rectangle(width=ax.x_length, height=ax.y_length).set_stroke(
+            color=colors.BLACK, width=4
+        )
+        graph = ax.plot(
+            lambda x: max(0.1 * x, x), color=colors.PURPLE, use_smoothing=False
+        )
+        labels = ax.get_axis_labels(x_label=Tex("x"), y_label=Tex("y"))
+
+        t = ValueTracker(0)
+        initial_point = [ax.c2p(t.get_value(), max(0.1 * t.get_value(), t.get_value()))]
+        dot = Dot(point=initial_point, radius=0.04, color=colors.BLACK)
+        dot.add_updater(
+            lambda x: x.move_to(
+                ax.c2p(t.get_value(), max(0.1 * t.get_value(), t.get_value()))
+            )
+        )
+
+        def get_dot_text():
+            return Text(
+                f"{max(0.1 * t.get_value(), t.get_value()):.2f}",
+                color=colors.BLACK,
+                font="Fira Code",
+                weight=BOLD,
+                font_size=15,
+            )
+
+        dot_text = always_redraw(get_dot_text)
+        dot_text.add_updater(lambda x: x.next_to(dot, UR))
+
+        full_graph = VGroup(ax, labels, graph, dot, leaky_relu_text)
 
         self.play(Write(full_graph), Write(self.ax_border))
         self.play(Write(dot_text))

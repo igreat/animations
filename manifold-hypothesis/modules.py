@@ -6,6 +6,7 @@ from torch import nn
 import torch.nn.functional as F
 from pytorch_utils.layer import Layer
 import random
+from functools import partial
 
 
 class Grid(VGroup):
@@ -14,7 +15,6 @@ class Grid(VGroup):
         self.submobjects = VGroup()
         self.grid_2d = []
         positions = []
-        # TODO; fix bug for non-equal x and y ranges
         y_range[1] += y_range[2]
         x_range[1] += x_range[2]
         for y in np.arange(*y_range):
@@ -29,16 +29,22 @@ class Grid(VGroup):
 
         self.grid_lines = VGroup()
 
+        def update_grid_connection(m, pos1, pos2):
+            x1, y1 = pos1
+            x2, y2 = pos2
+            return m.set_points_by_ends(
+                self.grid_2d[y1][x1].get_center(),
+                self.grid_2d[y2][x2].get_center(),
+            )
+
         # building the horizontal lines
         for i in range(len(self.grid_2d[0])):
             for j in range(len(self.grid_2d) - 1):
                 line = Line(color=colors.BLACK)
-                line.add_updater(
-                    lambda m, dt, i=i, j=j: m.set_points_by_ends(
-                        self.grid_2d[i][j].get_center(),
-                        self.grid_2d[i][j + 1].get_center(),
-                    )
+                update_line = partial(
+                    update_grid_connection, pos1=[i, j], pos2=[i, j + 1]
                 )
+                line.add_updater(update_line)
                 self.grid_lines.add(line)
 
         self.array = np.array(positions)
@@ -46,12 +52,10 @@ class Grid(VGroup):
         for j in range(len(self.grid_2d)):
             for i in range(len(self.grid_2d[0]) - 1):
                 line = Line(color=colors.BLACK)
-                line.add_updater(
-                    lambda m, dt, i=i, j=j: m.set_points_by_ends(
-                        self.grid_2d[i][j].get_center(),
-                        self.grid_2d[i + 1][j].get_center(),
-                    )
+                update_line = partial(
+                    update_grid_connection, pos1=[i, j], pos2=[i + 1, j]
                 )
+                line.add_updater(update_line)
                 self.grid_lines.add(line)
 
 

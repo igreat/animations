@@ -11,51 +11,115 @@ config.background_color = colors.WHITE
 #       and perhaps also add titles to each transformation
 
 
-class LinearTransformation(Scene):
+class LinearTransform(Scene):
     def construct(self):
         self.linear_transfom()
         self.wait()
 
     def linear_transfom(self):
-        grid = NumberPlane(
-            y_length=8 * 3,
-            y_range=[-8, 8, 0.5],
-            x_length=14 * 3,
-            x_range=[-14, 14, 0.5],
-            background_line_style={
-                "stroke_width": 1,
-                "stroke_opacity": 0.75,
+        # build the translation transformation
+        ax = Axes(
+            x_range=[-6, 6, 2],
+            y_range=[-6, 6, 2],
+            tips=False,
+            x_axis_config={
+                "unit_size": 0.5,
+                "numbers_to_include": np.arange(-4, 6, 2),
+                "font_size": 20,
             },
-            faded_line_ratio=1,
+            y_axis_config={
+                "unit_size": 0.5,
+                "numbers_to_include": np.arange(-4, 6, 2),
+                "font_size": 20,
+            },
         ).set_stroke(color=colors.BLACK)
-        fixed_grid = grid.copy().set_stroke(color=colors.DESERT)
-        fixed_grid.axes.set_stroke(width=4, color=colors.BLACK)
-        grid.axes.set_stroke(width=0)
 
-        dot = Dot(fixed_grid.c2p(1, -1, 0)).set_opacity(0)
+        ax.get_axis(0).numbers.set_color(colors.BLACK).set_stroke(width=1)
+        ax.get_axis(1).numbers.set_color(colors.BLACK).set_stroke(width=1)
 
-        def get_vector():
-            vector = (
-                Arrow(ORIGIN, dot.get_center(), buff=0)
-                .set_stroke(width=4, color=colors.ORANGE)
-                .set_fill(color=colors.ORANGE, opacity=1)
-            )
-            return vector
-
-        vector = always_redraw(get_vector)
-
-        self.play(Write(grid))
-        self.add(fixed_grid)
-        self.wait()
-
-        self.play(Write(vector))
-
-        A = np.array([[0.25, 0.75], [0.5, 0.25]])
-
-        self.play(
-            grid.animate.apply_matrix(A),
-            dot.animate.move_to([*(A @ dot.get_center()[0:2]), 0]),
+        ax_border = Rectangle(width=ax.x_length, height=ax.y_length).set_stroke(
+            color=colors.BLACK, width=4
         )
+
+        grid = Grid(ax, [-6, 6, 0.5], [-6, 6, 1], lattice_radius=0.04)
+        grid.grid_lines.set_stroke(width=0.5)
+        labels = ax.get_axis_labels(x_label=Tex("x"), y_label=Tex("y"))
+
+        # build the matrix multiply (mm) text
+        mm_text = (
+            MathTex(r"Wx", color=colors.WHITE)
+            .set_stroke(width=1)
+            .move_to(ax.get_corner(UL))
+            .shift(RIGHT * 1.8 + DOWN * 0.5)
+        )
+        mm_text.z_index = 3
+
+        # bounding box around the translation text
+        mm_text_box = (
+            RoundedRectangle(
+                height=mm_text.height * 2 + 0.1,
+                width=mm_text.width * 2.8 + 0.3,
+                corner_radius=0.2,
+            )
+            .set_fill(color=colors.BLACK, opacity=0.75)
+            .set_stroke(width=0)
+            .move_to(mm_text.get_center())
+        )
+        mm_text_box.z_index = 0
+
+        x_tracker = ValueTracker(0)
+        y_tracker = ValueTracker(0)
+        initial_point = [ax.c2p(x_tracker.get_value(), y_tracker.get_value())]
+        dot = Dot(point=initial_point, radius=0.08, color=colors.PURPLE)
+        dot.add_updater(
+            lambda x: x.move_to(ax.c2p(x_tracker.get_value(), y_tracker.get_value(), 0))
+        )
+
+        def get_dot_text():
+            return Text(
+                f"({x_tracker.get_value():.2f}, {y_tracker.get_value():.2f})",
+                color=colors.RED,
+                font="Fira Code",
+                weight=BOLD,
+                font_size=15,
+            )
+
+        dot_text = always_redraw(get_dot_text)
+        dot_text.add_updater(lambda x: x.move_to(dot.get_center() + UP * 0.25))
+
+        full_graph = VGroup(ax, labels, grid, grid.grid_lines, dot)
+
+        self.play(Write(full_graph), Write(ax_border))
+        self.play(Write(dot_text))
+        self.play(Write(mm_text_box))
+        self.play(Write(mm_text))
+        self.wait()
+        full_graph.add(dot_text)
+
+        # matrix A performs a sheer transformation
+        A = np.array([[1, 1], [0, 1]])
+        # matrix B performs a rotation
+        B = np.array([[0, -1], [1, 0]])
+        # sheer and rotation
+        C = A @ B
+
+        # applying C to the x and y trackers
+        new_vector = np.array([x_tracker.get_value(), y_tracker.get_value()]) @ C
+        new_x, new_y = new_vector[0], new_vector[1]
+
+        # applying a matrix multiply to the grid
+        grid.array = grid.array @ C.T
+        new_grid = [
+            dot.animate.move_to(ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid.array)
+        ]
+        self.play(
+            x_tracker.animate.set_value(new_x),
+            y_tracker.animate.set_value(new_y),
+            *new_grid,
+            run_time=3,
+        )
+        self.wait()
 
 
 class TanhGraph(Scene):
@@ -480,7 +544,7 @@ class AffineNonLinearTransform(Scene):
         new_x, new_y = new_vector[0], new_vector[1]
 
         # apply the transformation to the grid
-        grid.array = grid.array @ C
+        grid.array = grid.array @ C.T
         new_grid = [
             dot.animate.move_to(ax.c2p(*pos))
             for dot, pos in zip(grid.submobjects, grid.array)

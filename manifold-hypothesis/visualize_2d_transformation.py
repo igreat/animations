@@ -304,6 +304,27 @@ class AffineTransformation(Scene):
         grid = Grid(ax, [-6, 6, 0.5], [-6, 6, 1], lattice_radius=0.04)
         labels = ax.get_axis_labels(x_label=Tex("x"), y_label=Tex("y"))
 
+        # build the translation text
+        translation_text = (
+            MathTex(r"x + b", color=colors.WHITE)
+            .set_stroke(width=1)
+            .move_to(ax.get_corner(UL))
+            .shift(RIGHT * 1.5 + DOWN * 0.5)
+        )
+        translation_text.z_index = 3
+
+        # bounding box around the translation text
+        translation_text_box = (
+            RoundedRectangle(
+                height=translation_text.height * 2 + 0.1,
+                width=translation_text.width * 2.5 + 0.1,
+                corner_radius=0.2,
+            )
+            .set_fill(color=colors.BLACK, opacity=0.75)
+            .move_to(translation_text.get_center())
+        )
+        translation_text_box.z_index = 0
+
         x_tracker = ValueTracker(0)
         y_tracker = ValueTracker(0)
         initial_point = [ax.c2p(x_tracker.get_value(), y_tracker.get_value())]
@@ -328,6 +349,9 @@ class AffineTransformation(Scene):
 
         self.play(Write(full_graph), Write(ax_border))
         self.play(Write(dot_text))
+        self.play(Write(translation_text_box))
+        self.play(Write(translation_text))
+        self.wait()
         full_graph.add(dot_text)
 
         # applying a translation to the grid
@@ -344,13 +368,48 @@ class AffineTransformation(Scene):
         )
         self.wait()
 
-        # applying a second translation to the grid
+        # shifting the grid back to origin
         grid.array = grid.array + [-3, -2]
         new_grid = [
             dot.animate.move_to(ax.c2p(*pos))
             for dot, pos in zip(grid.submobjects, grid.array)
         ]
         new_x, new_y = x_tracker.get_value() - 3, y_tracker.get_value() - 2
+        self.play(
+            x_tracker.animate.set_value(new_x),
+            y_tracker.animate.set_value(new_y),
+            *new_grid,
+            run_time=3,
+        )
+        self.wait()
+
+        affine_text = (
+            MathTex(r"Wx + b", color=colors.WHITE)
+            .set_stroke(width=1)
+            .move_to(ax.get_corner(UL))
+            .shift(RIGHT * 1.5 + DOWN * 0.5)
+        )
+
+        # matrix A performs a sheer transformation
+        A = np.array([[1, 1], [0, 1]])
+        # matrix B performs a rotation
+        B = np.array([[0, -1], [1, 0]])
+        # sheer and rotation
+        C = A @ B
+
+        # applying C to the x and y trackers
+        new_vector = np.array([x_tracker.get_value(), y_tracker.get_value()]) @ C
+        new_x, new_y = new_vector[0], new_vector[1]
+
+        # apply the transformation to the grid
+        grid.array = grid.array @ C
+        new_grid = [
+            dot.animate.move_to(ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid.array)
+        ]
+
+        self.play(Transform(translation_text, affine_text))
+        self.wait()
         self.play(
             x_tracker.animate.set_value(new_x),
             y_tracker.animate.set_value(new_y),
@@ -374,30 +433,6 @@ class AffineTransformation(Scene):
         )
         self.wait()
 
-        # matrix A performs a sheer transformation
-        A = np.array([[1, 1], [0, 1]])
-        # matrix B performs a rotation
-        B = np.array([[0, -1], [1, 0]])
-        # sheer and rotation
-        C = A @ B
-
-        # applying C to the x and y trackers
-        new_vector = np.array([x_tracker.get_value(), y_tracker.get_value()]) @ C
-        new_x, new_y = new_vector[0], new_vector[1]
-
-        # apply the transformation to the grid
-        grid.array = grid.array @ C
-        new_grid = [
-            dot.animate.move_to(ax.c2p(*pos))
-            for dot, pos in zip(grid.submobjects, grid.array)
-        ]
-        self.play(
-            x_tracker.animate.set_value(new_x),
-            y_tracker.animate.set_value(new_y),
-            *new_grid,
-            run_time=3,
-        )
-        self.wait()
         dot_text.clear_updaters()
         self.play(FadeOut(full_graph), FadeOut(dot_text))
-        self.play(Unwrite(ax_border))
+        self.play(Unwrite(VGroup(ax_border, translation_text_box, translation_text)))

@@ -63,7 +63,6 @@ class LinearTransform(Scene):
         )
         mm_text_box.z_index = 0
 
-        # TODO: turn the dot into a vector initially starting at maybe [1, 1] (but not at [0, 0])
         vector_tracker = [ValueTracker(1), ValueTracker(1)]
 
         def get_vector():
@@ -181,7 +180,7 @@ class TanhGraph(Scene):
         def get_dot_text():
             return Text(
                 f"{math.tanh(t.get_value()):.2f}",
-                color=colors.BLACK,
+                color=colors.RED,
                 font="Fira Code",
                 weight=BOLD,
                 font_size=15,
@@ -321,7 +320,7 @@ class ReLUGraph(Scene):
         def get_dot_text():
             return Text(
                 f"{max(0, t.get_value()):.2f}",
-                color=colors.BLACK,
+                color=colors.RED,
                 font="Fira Code",
                 weight=BOLD,
                 font_size=15,
@@ -397,7 +396,7 @@ class LeakyReLUGraph(Scene):
         def get_dot_text():
             return Text(
                 f"{max(0.1 * t.get_value(), t.get_value()):.2f}",
-                color=colors.BLACK,
+                color=colors.RED,
                 font="Fira Code",
                 weight=BOLD,
                 font_size=15,

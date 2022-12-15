@@ -11,8 +11,9 @@ from pytorch_utils.layer import build_layer_lines
 
 config.background_color = colors.WHITE
 
+# why doesn't \cross work?
 mul_tex = MathTex(
-    r"\cross",
+    r"\dot",
     color=colors.BLACK,
     font_size=25,
 ).set_stroke(width=1)
@@ -187,7 +188,7 @@ class SeparatingSpirals2d(Scene):
         optimizer = optim.Adam(self.vis_model.parameters(), lr=1e-2)
         self.vis_model.requires_grad_(True)
 
-        for epoch in range(100):
+        for epoch in range(1):
             x, labels = data[:, 0:2], data[:, 2].unsqueeze(1)
             pred = self.vis_model(x)
 
@@ -409,7 +410,7 @@ class SeparatingSpirals2d(Scene):
 
         self.add(x_text1, y_text1, output_x, output_y)
 
-        self.play(x_text1.animate.shift(2 * UP))
+        self.play(x_text1.animate.shift(2 * UP + RIGHT * 0.8))
 
         mul_x_x = mul_tex.copy()
         mul_x_x.next_to(x_text1, RIGHT, 0.1)
@@ -508,7 +509,7 @@ class SeparatingSpirals2d(Scene):
 
         self.add(x_text2, y_text2)
 
-        self.play(x_text2.animate.shift(1.5 * UP))
+        self.play(x_text2.animate.shift(1.5 * UP + RIGHT * 0.8))
 
         mul_y_x = mul_tex.copy()
         mul_y_x.next_to(x_text2, RIGHT, 0.1)
@@ -551,8 +552,7 @@ class SeparatingSpirals2d(Scene):
         self.remove(highlight_lines2[1])
         self.add(w_y_y)
 
-        # consider here just introducing tanh right away and then just denote it as tanh()
-        # also consider putting this inside a function since I've used it 3 times
+        # consider putting this inside a function since I've used it 3 times
         non_lin_wrapper2 = VGroup()
         non_lin_wrapper2.add(
             MathTex(r"g(", color=colors.BLACK, font_size=25).next_to(
@@ -631,26 +631,34 @@ class SeparatingSpirals2d(Scene):
         self.play(
             Transform(VGroup(non_lin_wrapper1, non_lin_wrapper2), non_lin_wrapper3)
         )
+        self.remove(non_lin_wrapper1)
+        self.remove(non_lin_wrapper2)
+        self.add(non_lin_wrapper3)
 
         equals_final = equals_tex.copy().next_to(non_lin_wrapper3, RIGHT, 0.25)
         self.play(Transform(VGroup(equal_x, equal_y), equals_final))
+        self.remove(equal_x)
+        self.remove(equal_y)
+        self.add(equals_final)
 
         outputs = VGroup(output_x, output_y)
         self.play(outputs.animate.next_to(equals_final, 1.5 * RIGHT))
         output_brackets = add_brackets(outputs).set_color(colors.BLACK)
         output_vector = VGroup(outputs, output_brackets)
         self.play(Write(output_brackets))
-
         self.wait()
 
-        # TODO: make sure everything is lined up and sized properly
-        #       also consider adding a background box
+        full_operation_text = VGroup(
+            output_vector,
+            equals_final,
+            non_lin_wrapper3,
+            weight_matrix,
+            input_vector,
+        )
 
-        # TODO: give a brief explanation to how matrix multiplication
-        #       is a linear transformation
-
-        # TODO: make a small graph that pops up basically showing what tanh is
-        #       and then subtitute g for tanh from now on
+        centered_position = [all_neurons.get_x(), full_operation_text.get_y(), 0]
+        self.play(full_operation_text.animate.move_to(centered_position))
+        self.wait()
 
     def transform(self):
 

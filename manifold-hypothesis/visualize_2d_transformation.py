@@ -6,10 +6,6 @@ from modules import Grid
 
 config.background_color = colors.WHITE
 
-# TODO: accompany each transformation with the notation of the transformation
-#       for example, the matrix followed by tanh would be written as tanh(A @ x)
-#       and perhaps also add titles to each transformation
-
 
 class LinearTransform(Scene):
     def construct(self):
@@ -67,34 +63,42 @@ class LinearTransform(Scene):
         )
         mm_text_box.z_index = 0
 
-        x_tracker = ValueTracker(0)
-        y_tracker = ValueTracker(0)
-        initial_point = [ax.c2p(x_tracker.get_value(), y_tracker.get_value())]
-        dot = Dot(point=initial_point, radius=0.08, color=colors.PURPLE)
-        dot.add_updater(
-            lambda x: x.move_to(ax.c2p(x_tracker.get_value(), y_tracker.get_value(), 0))
-        )
+        # TODO: turn the dot into a vector initially starting at maybe [1, 1] (but not at [0, 0])
+        vector_tracker = [ValueTracker(1), ValueTracker(1)]
 
-        def get_dot_text():
+        def get_vector():
+            return Arrow(
+                start=ax.c2p(0, 0),
+                end=ax.c2p(*map(lambda m: m.get_value(), vector_tracker)),
+                color=colors.PURPLE,
+                buff=0,
+            )
+
+        vector = always_redraw(get_vector)
+
+        def get_vector_text():
             return Text(
-                f"({x_tracker.get_value():.2f}, {y_tracker.get_value():.2f})",
+                f"({vector_tracker[0].get_value():.2f}, {vector_tracker[1].get_value():.2f})",
                 color=colors.RED,
                 font="Fira Code",
                 weight=BOLD,
                 font_size=15,
             )
 
-        dot_text = always_redraw(get_dot_text)
-        dot_text.add_updater(lambda x: x.move_to(dot.get_center() + UP * 0.25))
+        vector_text = always_redraw(get_vector_text)
+        vector_text.add_updater(
+            lambda x: x.move_to(vector.get_tip().get_center() + UP * 0.25)
+        )
 
-        full_graph = VGroup(ax, labels, grid, grid.grid_lines, dot)
+        full_graph = VGroup(ax, labels, grid, grid.grid_lines)
 
         self.play(Write(full_graph), Write(ax_border))
-        self.play(Write(dot_text))
+        self.play(Write(vector))
+        self.play(Write(vector_text))
         self.play(Write(mm_text_box))
         self.play(Write(mm_text))
         self.wait()
-        full_graph.add(dot_text)
+        full_graph.add(vector_text)
 
         # matrix A performs a sheer transformation
         A = np.array([[1, 1], [0, 1]])
@@ -104,7 +108,9 @@ class LinearTransform(Scene):
         C = A @ B
 
         # applying C to the x and y trackers
-        new_vector = np.array([x_tracker.get_value(), y_tracker.get_value()]) @ C
+        new_vector = (
+            C @ np.array(list(map(lambda m: m.get_value(), vector_tracker)))[:2]
+        )
         new_x, new_y = new_vector[0], new_vector[1]
 
         # applying a matrix multiply to the grid
@@ -114,8 +120,8 @@ class LinearTransform(Scene):
             for dot, pos in zip(grid.submobjects, grid.array)
         ]
         self.play(
-            x_tracker.animate.set_value(new_x),
-            y_tracker.animate.set_value(new_y),
+            vector_tracker[0].animate.set_value(new_x),
+            vector_tracker[1].animate.set_value(new_y),
             *new_grid,
             run_time=3,
         )

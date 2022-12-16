@@ -5,6 +5,7 @@ import random
 import torch
 import colors
 import torch.nn.functional as F
+from sklearn.decomposition import PCA
 
 
 def generate_outer_inner_circles(ax, num_dots=100):
@@ -102,3 +103,18 @@ def add_brackets(mobj, shape="square"):
     l_bracket.next_to(mobj, LEFT, 0.005)
     r_bracket.next_to(mobj, RIGHT, 0.005)
     return VGroup(l_bracket, r_bracket)
+
+
+def reduce_dimentionality(data: np.ndarray, n_components=3):
+    """
+    Reduces the dimentionality of a batch of data using PCA
+
+    Parameters:
+    data (np.ndarray): the batch of data to reduce the dimentionality of
+    n_components (int): the number of components to reduce the data to
+
+    Returns:
+    np.ndarray: the reduced dimentionality data
+    """
+    pca = PCA(n_components=n_components)
+    return pca.fit_transform(data)

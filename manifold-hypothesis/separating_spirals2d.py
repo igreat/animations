@@ -45,6 +45,7 @@ class SeparatingSpirals2d(Scene):
         self.wait()
 
         self.model = Spirals2dModel()
+        # why is this not a pt file?
         self.model.load_state_dict(torch.load("saved_models/separating_spirals2d_tanh"))
         self.model.eval()
 
@@ -188,7 +189,7 @@ class SeparatingSpirals2d(Scene):
         optimizer = optim.Adam(self.vis_model.parameters(), lr=1e-2)
         self.vis_model.requires_grad_(True)
 
-        for epoch in range(1):
+        for epoch in range(100):
             x, labels = data[:, 0:2], data[:, 2].unsqueeze(1)
             pred = self.vis_model(x)
 

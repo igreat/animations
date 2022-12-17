@@ -29,7 +29,7 @@ transform = transforms.Compose(
 
 full_loader = DataLoader(
     datasets.MNIST("data", train=False, download=True, transform=transform),
-    batch_size=64,
+    batch_size=1000,
     shuffle=True,
 )
 image_loader = DataLoader(
@@ -132,8 +132,9 @@ class ManifoldHypothesis(ThreeDScene):
         data = data.view(-1, 28 * 28).requires_grad_(False)
         # only consider a single batch of 64 images for now
         all_features = mnist_feature_extractor(data)
-        # perform PCA on all layers and gather only first 64 images
-        reduced_features = [reduce_dimentionality(x, 3)[:64] for x in all_features]
+        # perform PCA on all layers and gather only first n images
+        n = 100
+        reduced_features = [reduce_dimentionality(x, 3)[:n] for x in all_features]
 
         # normalizing the features to a range of [-1 to 1] for convenience
         reduced_normalized_features = []
@@ -146,7 +147,7 @@ class ManifoldHypothesis(ThreeDScene):
             reduced_normalized_features.append(feature)
 
         # initialize the mnist images
-        mnist_images = []
+        mnist_images: list[MnistImage] = []
 
         # here for the image we must deprocess the image since it's been normalized
         for image_array, initial_position in zip(
@@ -154,11 +155,21 @@ class ManifoldHypothesis(ThreeDScene):
         ):
             # mean=0.1307, std=0.3081
             image_array = np.uint8((image_array.view(28, 28) * 0.3081 + 0.1307) * 255)
-            print(image_array.min(), image_array.max())
             mnist_images.append(
                 MnistImage(image=image_array, position=axes.c2p(*initial_position))
             )
 
-        images = [m.image for m in mnist_images]
+        images: list[ImageMobject] = [m.image for m in mnist_images]
         animations = [FadeIn(image) for image in images]
         self.play(*animations)
+
+        # showing the transformations
+        for batch_features in reduced_normalized_features[1:]:
+            animations = []
+            for image, feature in zip(mnist_images, batch_features):
+                animations.append(
+                    image.position_dot.animate.move_to(axes.c2p(*feature))
+                )
+
+            self.play(*animations)
+            self.wait()

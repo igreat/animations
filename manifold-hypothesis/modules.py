@@ -87,16 +87,15 @@ class DotsPlot(VGroup, metaclass=ConvertToOpenGL):
 
 
 class MnistImage:
-    def __init__(self, image: np.ndarray, position: np.ndarray):
+    def __init__(self, image: np.ndarray, position: np.ndarray, height=0.5):
         self.image = ImageMobject(image)
         self.image.set_resampling_algorithm(RESAMPLING_ALGORITHMS["nearest"])
-        self.image.height = 0.5
-        # self.position_dot = Dot3D(
-        #     position, radius=0
-        # )  # representing the position as a dot for convenience
+        self.image.height = height
+        self.position_dot = Dot(
+            position, radius=0
+        )  # representing the position as a dot for convenience
         self.image.move_to(position)
-        # self.image.shift(IN * 0.1)
-        # self.image.add_updater(lambda m, dt: m.move_to(position))
+        self.image.add_updater(lambda m, dt: m.move_to(self.position_dot))
 
 
 class Spirals2dModel(nn.Module):

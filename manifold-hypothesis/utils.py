@@ -105,7 +105,7 @@ def add_brackets(mobj, shape="square"):
     return VGroup(l_bracket, r_bracket)
 
 
-def reduce_dimentionality(data: np.ndarray, n_components=3):
+def reduce_dimentionality(data: np.ndarray, n_components: int):
     """
     Reduces the dimentionality of a batch of data using PCA
 

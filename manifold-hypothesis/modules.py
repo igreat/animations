@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from pytorch_utils.layer import Layer
 import random
 from functools import partial
+from dataclasses import dataclass
 
 
 class Grid(VGroup):
@@ -85,6 +86,19 @@ class DotsPlot(VGroup, metaclass=ConvertToOpenGL):
         self.array = np.concatenate((xs.reshape(-1, 1), ys.reshape(-1, 1)), axis=1)
 
 
+class MnistImage:
+    def __init__(self, image: np.ndarray, position: np.ndarray):
+        self.image = ImageMobject(image)
+        self.image.set_resampling_algorithm(RESAMPLING_ALGORITHMS["nearest"])
+        self.image.height = 0.5
+        # self.position_dot = Dot3D(
+        #     position, radius=0
+        # )  # representing the position as a dot for convenience
+        self.image.move_to(position)
+        # self.image.shift(IN * 0.1)
+        # self.image.add_updater(lambda m, dt: m.move_to(position))
+
+
 class Spirals2dModel(nn.Module):
     def __init__(self) -> None:
         super(Spirals2dModel, self).__init__()
@@ -158,6 +172,32 @@ class Model(nn.Module):
         outputs.append(x)
 
         return self.fc5(x), outputs
+
+
+class MnistClassifier(nn.Module):
+    """
+    purpose is to extract features (intermediate layers) of a simple mnist classifier
+    """
+
+    def __init__(self):
+        super(MnistClassifier, self).__init__()
+        self.fc1 = nn.Linear(784, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 10)
+
+    def forward(self, x):
+        features = [x]
+        x = self.fc1(x)
+        features.append(x)
+        x = torch.tanh(x)
+        features.append(x)
+        x = self.fc2(x)
+        features.append(x)
+        x = torch.tanh(x)
+        features.append(x)
+        x = self.fc3(x)
+        features.append(x)
+        return features
 
 
 class VisualizationModel(nn.Module):

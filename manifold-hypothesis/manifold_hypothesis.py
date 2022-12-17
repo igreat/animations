@@ -15,7 +15,6 @@ from modules import *
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-import matplotlib.pyplot as plt
 
 # train the model elsewhere and then import it here
 # only visualization will happen here
@@ -40,12 +39,17 @@ image_loader = DataLoader(
 )
 
 # load the model
-model = torch.load("saved_models/mnist_model.pt")
+mnist_feature_extractor = MnistClassifier()
+mnist_feature_extractor.load_state_dict(torch.load("saved_models/mnist_model_tanh.pt"))
+mnist_feature_extractor.eval().requires_grad_(False)
+
+# TODO: turn the model into a feature extractor!
 
 
 class ManifoldHypothesis(ThreeDScene):
     def construct(self):
-        self.datasets_examples()
+        # self.datasets_examples()
+        self.mnist_separation()
         self.wait()
 
     def datasets_examples(self):
@@ -95,10 +99,66 @@ class ManifoldHypothesis(ThreeDScene):
 
         self.play(FadeIn(table))
         self.play(FadeIn(image))
+        self.wait()
+        self.play(FadeOut(VGroup(table, image)))
 
     def mnist_separation(self):
         """
         To make the mnist digits face the camera, we need to match the
         camera's rotation speed with the rotation speed of the mnist digits
         """
-        pass
+
+        self.set_camera_orientation(phi=75 * DEGREES, theta=-45 * DEGREES)
+
+        # build the threed axis
+        axes = (
+            ThreeDAxes(
+                x_range=[-1, 1],
+                y_range=[-1, 1],
+                z_range=[-1, 1],
+                x_length=8,
+                y_length=8,
+                z_length=6,
+                axis_config={"include_tip": False},
+            )
+            .set_color(color=colors.BLACK)
+            .set_stroke(width=1)
+        )
+
+        self.play(Write(axes))
+
+        data, _ = next(iter(full_loader))
+
+        data = data.view(-1, 28 * 28).requires_grad_(False)
+        # only consider a single batch of 64 images for now
+        all_features = mnist_feature_extractor(data)
+        # perform PCA on all layers and gather only first 64 images
+        reduced_features = [reduce_dimentionality(x, 3)[:64] for x in all_features]
+
+        # normalizing the features to a range of [-1 to 1] for convenience
+        reduced_normalized_features = []
+        for feature in reduced_features:
+            # making the range 0 to 1
+            feature = (feature - feature.min()) / (feature.max() - feature.min())
+
+            # now making the range -1 to 1
+            feature = (feature - 0.5) * 2
+            reduced_normalized_features.append(feature)
+
+        # initialize the mnist images
+        mnist_images = []
+
+        # here for the image we must deprocess the image since it's been normalized
+        for image_array, initial_position in zip(
+            all_features[0], reduced_normalized_features[0]
+        ):
+            # mean=0.1307, std=0.3081
+            image_array = np.uint8((image_array.view(28, 28) * 0.3081 + 0.1307) * 255)
+            print(image_array.min(), image_array.max())
+            mnist_images.append(
+                MnistImage(image=image_array, position=axes.c2p(*initial_position))
+            )
+
+        images = [m.image for m in mnist_images]
+        animations = [FadeIn(image) for image in images]
+        self.play(*animations)

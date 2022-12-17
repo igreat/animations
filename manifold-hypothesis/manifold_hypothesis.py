@@ -1,12 +1,3 @@
-# TODO: complete the manifold hypothesis scene here
-#       1. show examples of real world datasets like tabular data
-#          and handwritten digit pictures as a 28 by 28 grid
-#
-#       2. do some kind of visualization showing how mnist
-#          is separated in some n dimentional space, but use
-#          dimentionality reduction like PCA to bring it 3D
-#          for visualization purposes
-
 from manim import *
 import colors
 import numpy as np
@@ -48,8 +39,8 @@ mnist_feature_extractor.eval().requires_grad_(False)
 
 class ManifoldHypothesis(ThreeDScene):
     def construct(self):
-        # self.datasets_examples()
-        self.mnist_separation()
+        self.datasets_examples()
+        # self.mnist_separation()
         self.wait()
 
     def datasets_examples(self):
@@ -74,11 +65,9 @@ class ManifoldHypothesis(ThreeDScene):
             .set_stroke(color=colors.BLACK, width=1)
             .scale(0.5)
         )
-        table_title.next_to(table_object, UP, buff=0.5)
+        table_title.next_to(table_object, UP, buff=0.5).scale(1.5)
 
         table = Group(table_object, table_title)
-
-        # display an mnist image as an ImageMobject in manim
 
         # get the first image
         data, _ = next(iter(image_loader))
@@ -99,8 +88,60 @@ class ManifoldHypothesis(ThreeDScene):
 
         self.play(FadeIn(table))
         self.play(FadeIn(image))
+        self.wait(2)
+
+        self.play(
+            table.animate.shift(UP * 1.2 + LEFT * 0.25).scale(0.75),
+            image.animate.shift(UP * 1.2 + LEFT * 0.25).scale(0.75),
+        )
+
+        # question mark for effect
+        question_mark = (
+            Text("?", color=colors.DARK_RED)
+            .set_stroke(width=1, color=colors.DARK_RED)
+            .scale(4.5)
+        )
+        question_mark.next_to(examples, DOWN, buff=0.5)
+        self.play(Write(question_mark))
+        self.wait(2)
+        self.play(Unwrite(question_mark))
         self.wait()
-        self.play(FadeOut(VGroup(table, image)))
+
+        manifold1 = (
+            Torus(checkerboard_colors=[colors.RED, colors.DARK_RED])
+            .scale(0.5)
+            .rotate(-80 * DEGREES, RIGHT)
+            .next_to(image, DOWN, buff=0.6)
+        )
+        manifold2 = (
+            Surface(
+                lambda u, v: np.array([u, v, np.sin(u**2 + v**2)]),
+                u_range=[-1, 1],
+                v_range=[-1, 1],
+                checkerboard_colors=[colors.DESERT, colors.ORANGE],
+            )
+            .rotate(-80 * DEGREES, RIGHT)
+            .scale(2)
+            .next_to(table, DOWN, buff=0.5)
+        )
+        self.play(FadeIn(manifold1))
+        self.play(FadeIn(manifold2))
+        self.wait()
+
+        self.play(FadeOut(Group(table, image, manifold1, manifold2)))
+
+    def manifold_examples(self):
+        """
+        Here I will present a few examples of manifolds in different dimensions
+        """
+        pass
+
+    def mnist_classifier_code(self):
+        """
+        Here, I'll show the code I used to make the neural network as
+        a cheap way of showcasing what neural network structure I'm using
+        """
+        pass
 
     def mnist_separation(self):
         """

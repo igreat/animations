@@ -1,13 +1,10 @@
 from manim import *
 import colors
-from manim.mobject.opengl.opengl_compatibility import ConvertToOpenGL
 import torch
 from torch import nn
-import torch.nn.functional as F
 from pytorch_utils.layer import Layer
 import random
 from functools import partial
-from dataclasses import dataclass
 
 
 class Grid(VGroup):
@@ -60,38 +57,11 @@ class Grid(VGroup):
                 self.grid_lines.add(line)
 
 
-class DotsPlot(VGroup, metaclass=ConvertToOpenGL):
-    # I initially used this to do reverse transformations, but I already gave up on that
-    def __init__(self, ax, func, start, end, num_points, *vmobjects, **kwargs):
-        VGroup.__init__(self, **kwargs)
-
-        xs = np.linspace(start, end, num_points)
-        ys = func(xs)
-
-        self.submobjects = VGroup(*[Dot(ax.c2p(x, y), 0) for x, y in zip(xs, ys)])
-
-        self.sublines = VGroup()
-
-        for i in range(0, len(self.submobjects) - 1):
-            line = Line(color=colors.BLACK)
-            line.add_updater(
-                lambda m, dt, i=i, j=i + 1: m.set_points_by_ends(
-                    self.submobjects[i].get_center(),
-                    self.submobjects[j].get_center(),
-                )
-            )
-            line.resume_updating()
-            self.sublines.add(line)
-
-        self.array = np.concatenate((xs.reshape(-1, 1), ys.reshape(-1, 1)), axis=1)
-
-
 class MnistImage:
     def __init__(
         self,
         image: np.ndarray,
         position: np.ndarray,
-        camera=None,
         height=0.5,
     ):
 

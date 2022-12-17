@@ -125,12 +125,14 @@ class ManifoldHypothesis(ThreeDScene):
             .set_stroke(width=1)
         )
 
+        self.camera
+        self.begin_ambient_camera_rotation(-0.1)
+
         self.play(Write(axes))
 
         data, _ = next(iter(full_loader))
 
         data = data.view(-1, 28 * 28).requires_grad_(False)
-        # only consider a single batch of 64 images for now
         all_features = mnist_feature_extractor(data)
         # perform PCA on all layers and gather only first n images
         n = 100
@@ -156,7 +158,9 @@ class ManifoldHypothesis(ThreeDScene):
             # mean=0.1307, std=0.3081
             image_array = np.uint8((image_array.view(28, 28) * 0.3081 + 0.1307) * 255)
             mnist_images.append(
-                MnistImage(image=image_array, position=axes.c2p(*initial_position))
+                MnistImage(
+                    image=image_array, position=axes.c2p(*initial_position)
+                ).fix_angle(self.camera)
             )
 
         images: list[ImageMobject] = [m.image for m in mnist_images]
@@ -173,3 +177,6 @@ class ManifoldHypothesis(ThreeDScene):
 
             self.play(*animations)
             self.wait()
+
+        # TODO: maybe increase the depth of the network as that's an easy variable to change
+        #       must retrain the model though

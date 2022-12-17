@@ -87,7 +87,14 @@ class DotsPlot(VGroup, metaclass=ConvertToOpenGL):
 
 
 class MnistImage:
-    def __init__(self, image: np.ndarray, position: np.ndarray, height=0.5):
+    def __init__(
+        self,
+        image: np.ndarray,
+        position: np.ndarray,
+        camera=None,
+        height=0.5,
+    ):
+
         self.image = ImageMobject(image)
         self.image.set_resampling_algorithm(RESAMPLING_ALGORITHMS["nearest"])
         self.image.height = height
@@ -96,6 +103,23 @@ class MnistImage:
         )  # representing the position as a dot for convenience
         self.image.move_to(position)
         self.image.add_updater(lambda m, dt: m.move_to(self.position_dot))
+
+    def fix_angle(self, camera):
+        # I actually have no idea why these initial numbers work
+        self.image.theta = -90 * DEGREES
+        self.image.phi = 75 * DEGREES
+
+        def match_angle(mob):
+            mob.rotate(-mob.theta, OUT)
+            mob.rotate(-mob.phi, UP)
+            mob.rotate(camera.theta, OUT)
+            mob.rotate(camera.phi, UP)
+            mob.theta = camera.theta
+            mob.phi = camera.phi
+
+        self.image.add_updater(lambda m, dt: match_angle(m))
+        self.image.resume_updating()
+        return self
 
 
 class Spirals2dModel(nn.Module):

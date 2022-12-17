@@ -31,13 +31,12 @@ mnist_feature_extractor = MnistClassifier()
 mnist_feature_extractor.load_state_dict(torch.load("saved_models/mnist_model_tanh.pt"))
 mnist_feature_extractor.eval().requires_grad_(False)
 
-# TODO: turn the model into a feature extractor!
-
 
 class ManifoldHypothesis(ThreeDScene):
     def construct(self):
         # self.datasets_examples()
-        self.manifold_examples()
+        # self.manifold_examples()
+        self.mnist_classifier_code()
         # self.mnist_separation()
         self.wait()
 
@@ -236,12 +235,43 @@ class ManifoldHypothesis(ThreeDScene):
         self.play(Write(dot))
         self.wait()
 
+        full_0d_manifold = VGroup(numberline, axes1d_bounding_box, dot)
+        self.play(FadeOut(VGroup(full_0d_manifold, full_1d_manifold, full_2d_manifold)))
+
     def mnist_classifier_code(self):
         """
         Here, I'll show the code I used to make the neural network as
         a cheap way of showcasing what neural network structure I'm using
         """
-        pass
+        code = r"""import torch
+from torch import nn
+
+class MnistClassifier(nn.Module):
+    def __init__(self):
+        super(MnistClassifier, self).__init__()
+        self.fc1 = nn.Linear(784, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 10)
+
+    def forward(self, x):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        return self.fc3(x)
+"""
+        model_code = Code(
+            code=code,
+            tab_width=2,
+            background="rectangle",
+            language="Python",
+            font="Menlo, Monaco",
+            style="vs",
+            background_stroke_color=colors.BLACK,
+            background_stroke_width=4,
+            line_spacing=1,
+            font_size=18,
+        )
+        self.play(Write(model_code))
+        self.wait()
 
     def mnist_separation(self):
         """

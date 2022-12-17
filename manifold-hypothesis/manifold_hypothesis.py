@@ -147,14 +147,70 @@ class ManifoldHypothesis(ThreeDScene):
 
         line = axes2d.plot(lambda x: x).set_stroke(color=colors.PURPLE, width=2)
 
+        circle = (
+            Circle(radius=3)
+            .next_to(axes2d_bounding_box, ORIGIN)
+            .set_stroke(color=colors.RED, width=2)
+        )
+
         full_axes2d = VGroup(axes2d, axes2d_bounding_box)
+        full_1d_manifold = VGroup(full_axes2d, line, circle)
 
         self.play(Write(full_axes2d))
         self.wait()
         self.play(Write(line))
+        self.play(Write(circle))
         self.wait()
 
+        self.play(full_1d_manifold.animate.shift(LEFT * 5).scale(0.5))
+
         ### present a 2 dimensional manifold ###
+        axes3d = ThreeDAxes(
+            x_range=[-1, 1, 0.2],
+            y_range=[-1, 1, 0.2],
+            z_range=[-1, 1, 0.2],
+            x_length=6,
+            y_length=6,
+            z_length=6,
+            axis_config={"include_tip": False},
+        ).set_stroke(color=colors.BLACK, width=2)
+        axes3d.rotate(30 * DEGREES, UP).rotate(-30 * DEGREES, RIGHT)
+
+        axes3d_bounding_box = (
+            SurroundingRectangle(axes3d, buff=0.25)
+            .set_stroke(color=colors.BLACK, width=2)
+            .shift(DL * 0.1)
+        )
+
+        plane = (
+            Square(5)
+            .rotate(120 * DEGREES, RIGHT)
+            .next_to(axes3d_bounding_box, ORIGIN)
+            .set_fill(opacity=0.25, color=colors.DESERT)
+            .set_stroke(width=4, color=colors.DESERT)
+            .shift(DOWN)
+        )
+
+        sphere = (
+            Sphere(
+                ORIGIN, radius=1.25, checkerboard_colors=[colors.PURPLE, colors.PURPLE]
+            )
+            .rotate(90 * DEGREES, RIGHT)
+            .shift(UP)
+            .set_opacity(0.5)
+        )
+
+        axes3d.z_index = 3
+        sphere.z_index = 1
+        plane.z_index = 0
+
+        self.play(Write(VGroup(axes3d, axes3d_bounding_box)))
+        self.play(Write(plane))
+        self.play(FadeIn(sphere))
+        self.wait()
+
+        ### a 0 dimensional manifold for the sake of completeless ###
+        # just a dot
 
     def mnist_classifier_code(self):
         """

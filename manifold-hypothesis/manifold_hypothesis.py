@@ -145,12 +145,12 @@ class ManifoldHypothesis(ThreeDScene):
             color=colors.BLACK, width=2
         )
 
-        line = axes2d.plot(lambda x: x).set_stroke(color=colors.PURPLE, width=2)
+        line = axes2d.plot(lambda x: x).set_stroke(color=colors.PURPLE, width=3)
 
         circle = (
             Circle(radius=3)
             .next_to(axes2d_bounding_box, ORIGIN)
-            .set_stroke(color=colors.RED, width=2)
+            .set_stroke(color=colors.RED, width=3)
         )
 
         full_axes2d = VGroup(axes2d, axes2d_bounding_box)
@@ -204,13 +204,37 @@ class ManifoldHypothesis(ThreeDScene):
         sphere.z_index = 1
         plane.z_index = 0
 
+        full_2d_manifold = VGroup(axes3d, axes3d_bounding_box, plane, sphere)
+
         self.play(Write(VGroup(axes3d, axes3d_bounding_box)))
         self.play(Write(plane))
         self.play(FadeIn(sphere))
         self.wait()
+        self.play(
+            full_2d_manifold.animate.scale_to_fit_height(axes2d_bounding_box.height)
+        )
+        self.wait()
 
         ### a 0 dimensional manifold for the sake of completeless ###
-        # just a dot
+
+        numberline = NumberLine(
+            x_range=[-1, 1, 0.5], length=axes2d_bounding_box.width
+        ).set_stroke(width=2, color=colors.BLACK)
+        numberline.set_x(-axes2d.get_x())
+        axes1d_bounding_box: RoundedRectangle = axes2d_bounding_box.copy()
+        axes1d_bounding_box.next_to(numberline, ORIGIN)
+
+        # dot
+        dot = (
+            Dot(numberline.get_center(), radius=0.04)
+            .set_stroke(width=2, color=colors.RED)
+            .set_fill(color=colors.RED)
+            .shift(LEFT * 0.1)
+        )
+
+        self.play(Write(VGroup(numberline, axes1d_bounding_box)))
+        self.play(Write(dot))
+        self.wait()
 
     def mnist_classifier_code(self):
         """

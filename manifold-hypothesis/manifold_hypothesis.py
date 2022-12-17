@@ -7,9 +7,6 @@ import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
-# train the model elsewhere and then import it here
-# only visualization will happen here
-
 config.background_color = colors.WHITE
 
 # load mnist dataset
@@ -39,7 +36,8 @@ mnist_feature_extractor.eval().requires_grad_(False)
 
 class ManifoldHypothesis(ThreeDScene):
     def construct(self):
-        self.datasets_examples()
+        # self.datasets_examples()
+        self.manifold_examples()
         # self.mnist_separation()
         self.wait()
 
@@ -134,7 +132,29 @@ class ManifoldHypothesis(ThreeDScene):
         """
         Here I will present a few examples of manifolds in different dimensions
         """
-        pass
+
+        ### present a one dimentional manifold inside 2d space ###
+        axes2d = Axes(
+            x_range=[-1, 1, 0.2],
+            y_range=[-1, 1, 0.2],
+            x_length=6,
+            y_length=6,
+            axis_config={"include_tip": False},
+        ).set_stroke(color=colors.BLACK, width=2)
+        axes2d_bounding_box = SurroundingRectangle(axes2d, buff=0).set_stroke(
+            color=colors.BLACK, width=2
+        )
+
+        line = axes2d.plot(lambda x: x).set_stroke(color=colors.PURPLE, width=2)
+
+        full_axes2d = VGroup(axes2d, axes2d_bounding_box)
+
+        self.play(Write(full_axes2d))
+        self.wait()
+        self.play(Write(line))
+        self.wait()
+
+        ### present a 2 dimensional manifold ###
 
     def mnist_classifier_code(self):
         """

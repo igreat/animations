@@ -3,6 +3,7 @@ import colors
 import numpy as np
 from utils import *
 from modules import *
+from models import Spirals2dModel
 import torch
 from torch import optim
 import torch.nn.functional as F

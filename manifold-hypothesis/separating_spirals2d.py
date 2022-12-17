@@ -3,6 +3,7 @@ import colors
 import numpy as np
 from utils import *
 from modules import *
+from models import Spirals2dModel, VisualizationModel
 import torch
 from torch import optim
 import torch.nn.functional as F
@@ -57,7 +58,6 @@ class SeparatingSpirals2d(Scene):
         # TODO: think about displaying the matrices as the transformation goes on
         # self.transform()
         # self.wait()
-        # self.reverse_transform()
         self.wait(2)
 
     def build_spirals(self):
@@ -756,122 +756,3 @@ class SeparatingSpirals2d(Scene):
 
         # TODO: show the boundary separation in 3D as well
         #       remember that the normal vector to the hyper plane is just that last matrix multiply
-
-    # this part seems to not work at all...
-    def reverse_transform(self):
-
-        # TODO: instead of reverse transforming the linear boundary of the final layer
-        #       just show how the boundary changes for each intermediate layer
-        #       as I reverse transform the whole data set
-
-        reverse_weights = [np.linalg.inv(w) for w in reversed(self.weights[:-1])]
-        reverse_biases = [-b for b in reversed(self.biases[:-1])]
-        reverse_acts = [np.arctanh for _ in range(4)]
-
-        # here also put the boundary line!
-        # THERE IS SOMETHING FUNDEMENTALLY WRONG WITH THE SHIFT/BIAS THING IN THE BOUNDARY LINE, FIX IT SOON
-        W5, b5 = self.weights[-1].squeeze(), self.biases[-1].squeeze()
-        line = DotsPlot(self.ax, lambda x: -W5[0] / W5[1] * x - b5 / W5[1], -1, 1, 1000)
-        self.play(Create(line.sublines))
-
-        for w, b, func in zip(reverse_weights, reverse_biases, reverse_acts):
-
-            # nonlinearity
-            self.blue_spiral_array = func(self.blue_spiral_array)
-            self.red_spiral_array = func(self.red_spiral_array)
-            # grid.array = func(grid.array)
-            line.array = func(line.array)
-
-            new_blue_spiral = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(self.blue_spiral, self.blue_spiral_array)
-            ]
-            new_red_spiral = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(self.red_spiral, self.red_spiral_array)
-            ]
-            # new_grid = [
-            #     dot.animate.move_to(next_ax.c2p(*pos))
-            #     for dot, pos in zip(grid.submobjects, grid.array)
-            # ]
-
-            new_line = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(line.submobjects, line.array)
-            ]
-
-            self.play(
-                *new_blue_spiral,
-                *new_red_spiral,
-                # *new_grid,
-                *new_line,
-                run_time=3,
-                rate_func=rate_functions.linear,
-            )
-
-            # translation
-            self.blue_spiral_array += b
-            self.red_spiral_array += b
-            # grid.array = grid.array + b
-            line.array = line.array + b
-
-            new_blue_spiral = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(self.blue_spiral, self.blue_spiral_array)
-            ]
-            new_red_spiral = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(self.red_spiral, self.red_spiral_array)
-            ]
-            # new_grid = [
-            #     dot.animate.move_to(next_ax.c2p(*pos))
-            #     for dot, pos in zip(grid.submobjects, grid.array)
-            # ]
-
-            new_line = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(line.submobjects, line.array)
-            ]
-
-            self.play(
-                *new_blue_spiral,
-                *new_red_spiral,
-                # *new_grid,
-                *new_line,
-                rate_func=rate_functions.linear,
-            )
-
-            # linear transformation
-            self.blue_spiral_array = self.blue_spiral_array @ w.T
-            self.red_spiral_array = self.red_spiral_array @ w.T
-            # grid.array = grid.array @ w.T
-            line.array = line.array @ w.T
-
-            new_blue_spiral = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(self.blue_spiral, self.blue_spiral_array)
-            ]
-            new_red_spiral = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(self.red_spiral, self.red_spiral_array)
-            ]
-            # new_grid = [
-            #     dot.animate.move_to(self.ax.c2p(*pos))
-            #     for dot, pos in zip(grid.submobjects, grid.array)
-            # ]
-
-            new_line = [
-                dot.animate.move_to(self.ax.c2p(*pos))
-                for dot, pos in zip(line.submobjects, line.array)
-            ]
-
-            self.play(
-                *new_blue_spiral,
-                *new_red_spiral,
-                # *new_grid,
-                *new_line,
-                run_time=3,
-                rate_func=rate_functions.linear,
-            )
-
-        self.wait(2)

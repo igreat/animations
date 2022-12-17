@@ -6,6 +6,8 @@ from modules import *
 
 config.background_color = colors.WHITE
 
+# TODO: retrain the model and this time keep the last layer weights
+
 
 class SeparatingSpirals3d(ThreeDScene):
     def construct(self):
@@ -34,6 +36,8 @@ class SeparatingSpirals3d(ThreeDScene):
         self.play(Write(outer_dots))
 
         # linear transformation
+        # TODO: instead of copy pasting the weights, wouldn't it be better
+        # to import the whole model and extract its features?
 
         W1 = np.array(
             [
@@ -128,3 +132,16 @@ class SeparatingSpirals3d(ThreeDScene):
             self.play(*inner_anim, *outer_anim, run_time=3, rate_func=linear)
 
         self.wait(2)
+
+        ### separating it with a plane ###
+        # TODO: retrain the model to get an accurate hyperplane
+        hyperplane = (
+            Square(ax.x_length)
+            .set_fill(color=colors.DESERT, opacity=0.5)
+            .set_stroke(color=colors.DESERT, width=4)
+            .move_to(ax.get_center())
+        )
+        # hyperplane good so far
+
+        self.play(Create(hyperplane))
+        self.wait()

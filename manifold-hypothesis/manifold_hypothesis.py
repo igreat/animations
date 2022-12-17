@@ -3,6 +3,7 @@ import colors
 import numpy as np
 from utils import *
 from modules import *
+from models import MnistClassifier
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
@@ -249,6 +250,7 @@ from torch import nn
 class MnistClassifier(nn.Module):
     def __init__(self):
         super(MnistClassifier, self).__init__()
+        # fully connected linear layers (FC)
         self.fc1 = nn.Linear(784, 128)
         self.fc2 = nn.Linear(128, 64)
         self.fc3 = nn.Linear(64, 10)
@@ -271,6 +273,8 @@ class MnistClassifier(nn.Module):
             font_size=18,
         )
         self.play(Write(model_code))
+        self.wait()
+        self.play(Unwrite(model_code))
         self.wait()
 
     def mnist_separation(self):

@@ -8,7 +8,7 @@ from models import DiskClassifier3D
 config.background_color = colors.WHITE
 
 
-class SeparatingSpirals3d(ThreeDScene):
+class SeparatingDisks3D(ThreeDScene):
     def construct(self):
         self.separate_disks()
         self.wait()
@@ -25,12 +25,16 @@ class SeparatingSpirals3d(ThreeDScene):
         # setting up the axes
         x_range = [-2.5, 2.5, 0.5]
         y_range = [-2.5, 2.5, 0.5]
+        z_range = [-2.5, 2.5, 0.5]
 
+        # TODO: revise which directions the axes are pointing (RIGHT, UP, OUT?)
         ax = ThreeDAxes(
             x_range=x_range,
             y_range=y_range,
+            z_range=z_range,
             x_length=7,
             y_length=7,
+            z_length=7,
             tips=False,
         ).set_stroke(color=colors.BLACK)
 
@@ -42,7 +46,6 @@ class SeparatingSpirals3d(ThreeDScene):
 
         self.begin_ambient_camera_rotation(-0.1)
 
-        print(inner_array.shape, outer_array.shape)
         self.play(Write(ax))
         self.play(Write(inner_dots))
         self.play(Write(outer_dots))
@@ -71,15 +74,39 @@ class SeparatingSpirals3d(ThreeDScene):
 
         self.wait()
 
-        ### separating it with a plane ###
-        # TODO: use the last layer's weights to create the separating plane
+        # get the normal vector of the plane (equivalent to the last layer's weights)
+        normal_vector = list(diskclassifier.parameters())[-2][0].detach().numpy()
+        normal_vector = normal_vector / np.linalg.norm(normal_vector)
+
+        # getting the polar coordinates of the normal vector
+        theta = np.arccos(normal_vector[2])
+        phi = np.arctan2(normal_vector[1], normal_vector[0])
+
+        normal_arrow = Arrow(
+            ax.c2p(*ORIGIN),
+            ax.c2p(*normal_vector),
+            color=colors.DARK_RED,
+            buff=0,
+        )
+        self.play(Create(normal_arrow))
+        self.wait()
+
+        ### separating the two regions with a plane ###
         hyperplane = (
             Square(ax.x_length)
             .set_fill(color=colors.DESERT, opacity=0.5)
             .set_stroke(color=colors.DESERT, width=4)
-            .move_to(ax.get_center())
+            .move_to(ax.c2p(0, 0, 0))
+            .rotate(PI / 2, axis=ax.c2p(*UP))
         )
-        # hyperplane good so far
 
+        # rotate the plane to have a normal vector of normal_vector
+        hyperplane.rotate(angle=theta, axis=ax.c2p(*IN), about_point=ax.c2p(*IN))
+        hyperplane.rotate(angle=phi, axis=ax.c2p(*RIGHT), about_point=ax.c2p(*RIGHT))
+
+        # move the plane to the correct position
+        hyperplane.move_to(ax.c2p(0, 0, 0))
+
+        # create the plane
         self.play(Create(hyperplane))
-        self.wait()
+        self.wait(30)

@@ -1,4 +1,5 @@
 media
 __pycache__
 .DS_Store
-test-scenes
+experiments
+manifold-hypothesis/data

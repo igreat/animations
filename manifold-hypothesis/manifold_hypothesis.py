@@ -1,8 +1,8 @@
 from manim import *
 import colors
 import numpy as np
-from utils import *
-from modules import *
+from utils import reduce_dimentionality
+from modules import MnistImage
 from models import MnistClassifier
 import torch
 from torchvision import datasets, transforms

@@ -1,8 +1,6 @@
 from manim import *
 import colors
 import numpy as np
-from utils import *
-from modules import *
 from models import SpiralsClassifier3D
 import torch
 from torch import optim

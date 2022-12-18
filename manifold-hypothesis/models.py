@@ -6,9 +6,46 @@ from pytorch_utils.layer import Layer
 import colors
 
 
-class Model(nn.Module):
+class DiskClassifier3D(nn.Module):
     def __init__(self) -> None:
-        super(Model, self).__init__()
+        super(DiskClassifier3D, self).__init__()
+
+        self.fc1 = nn.Linear(2, 3)
+        self.fc2 = nn.Linear(3, 3)
+        self.fc3 = nn.Linear(3, 3)
+        self.fc4 = nn.Linear(3, 3)
+        self.fc5 = nn.Linear(3, 1)
+
+    def forward(self, input):
+        outputs = [input]
+
+        x = self.fc1(input)
+        outputs.append(x)
+        x = torch.tanh(x)
+        outputs.append(x)
+
+        x = self.fc2(x)
+        outputs.append(x)
+        x = torch.tanh(x)
+        outputs.append(x)
+
+        x = self.fc3(x)
+        outputs.append(x)
+        x = torch.tanh(x)
+        outputs.append(x)
+
+        x = self.fc4(x)
+        outputs.append(x)
+        x = torch.tanh(x)
+        outputs.append(x)
+        x = self.fc5(x)
+        outputs.append(x)
+        return outputs
+
+
+class SpiralsClassifier3D(nn.Module):
+    def __init__(self) -> None:
+        super(SpiralsClassifier3D, self).__init__()
 
         self.fc1 = nn.Linear(2, 3)
         self.fc2 = nn.Linear(3, 3)

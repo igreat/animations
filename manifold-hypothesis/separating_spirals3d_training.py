@@ -3,6 +3,7 @@ import colors
 import numpy as np
 from utils import *
 from modules import *
+from models import SpiralsClassifier3D
 import torch
 from torch import optim
 import torch.nn.functional as F
@@ -75,7 +76,7 @@ class SeparatingSpirals3dTraining(ThreeDScene):
         data = torch.tensor(data, dtype=torch.float32).T
 
         # setting up the model
-        model = Model().float()
+        model = SpiralsClassifier3D().float()
 
         optimizer = optim.Adam(model.parameters(), lr=1e-2)
         model.requires_grad_(True)

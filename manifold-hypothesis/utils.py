@@ -8,7 +8,9 @@ import torch.nn.functional as F
 from sklearn.decomposition import PCA
 
 
-def generate_outer_inner_circles(ax, num_dots=100):
+def generate_outer_inner_circles(
+    ax: Axes, num_dots: int = 100, resolution: tuple[int, int] = (2, 2)
+) -> tuple[tuple[Group, np.ndarray], tuple[Group, np.ndarray]]:
 
     inner = []
     for _ in range(num_dots):
@@ -29,25 +31,23 @@ def generate_outer_inner_circles(ax, num_dots=100):
     inner_array = np.array(inner)
     outer_array = np.array(outer)
 
-    inner_dots = VGroup(
+    inner_dots = Group(
         *[
             Dot3D(
                 ax.c2p(*point, 0),
                 radius=0.05,
                 color=colors.PURPLE,
-                resolution=(2, 2),
             )
             for point in inner_array
         ]
     )
 
-    outer_dots = VGroup(
+    outer_dots = Group(
         *[
             Dot3D(
                 ax.c2p(*point, 0),
                 radius=0.05,
                 color=colors.RED,
-                resolution=(2, 2),
             )
             for point in outer_array
         ]

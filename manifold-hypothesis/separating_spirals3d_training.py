@@ -7,6 +7,7 @@ from torch import optim
 import torch.nn.functional as F
 
 config.background_color = colors.WHITE
+config.renderer = "opengl"
 
 
 class SeparatingSpirals3dTraining(ThreeDScene):

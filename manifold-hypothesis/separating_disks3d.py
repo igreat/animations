@@ -6,6 +6,7 @@ from utils import generate_outer_inner_circles
 from models import DiskClassifier3D
 
 config.background_color = colors.WHITE
+config.renderer = "opengl"
 
 
 class SeparatingDisks3D(ThreeDScene):
@@ -41,13 +42,13 @@ class SeparatingDisks3D(ThreeDScene):
         (inner_dots, inner_array), (
             outer_dots,
             outer_array,
-        ) = generate_outer_inner_circles(ax, 150)
+        ) = generate_outer_inner_circles(ax, 50)
 
         self.begin_ambient_camera_rotation(-0.1)
 
         self.play(Write(ax))
-        self.play(Write(inner_dots))
-        self.play(Write(outer_dots))
+        self.play(FadeIn(inner_dots))
+        self.play(FadeIn(outer_dots))
 
         # get the intermediate outputs of the inner and outer arrays
         inner_outputs = diskclassifier(torch.tensor(inner_array).float())
@@ -92,14 +93,11 @@ class SeparatingDisks3D(ThreeDScene):
             buff=0,
         ).shift(ax.c2p(*(-normal_vector * distance)))
 
-        self.play(Create(normal_arrow))
-        self.wait()
-
         ### separating the two regions with a plane ###
         hyperplane = (
-            Square(ax.x_length)
-            .set_fill(color=colors.DESERT, opacity=0.5)
-            .set_stroke(color=colors.DESERT, width=4)
+            Square(side_length=ax.x_length, shade_in_3d=True)
+            .set_fill(color=colors.DESERT, opacity=0.25)
+            .set_stroke(color=colors.BLACK, width=4)
             .move_to(ax.c2p(0, 0, 0))
             .rotate(PI / 2, axis=ax.c2p(*UP))
         )
@@ -111,6 +109,8 @@ class SeparatingDisks3D(ThreeDScene):
         # shifting the plane to the correct distance from the origin
         hyperplane.shift(ax.c2p(*(-normal_vector * distance)))
 
-        # create the plane
-        self.play(Create(hyperplane))
+        # TODO: fix issue where the plane appears in front of everything
+
+        # create the plane and its normal
+        self.play(FadeIn(hyperplane), FadeIn(normal_arrow))
         self.wait(30)

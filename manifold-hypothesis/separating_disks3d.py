@@ -27,7 +27,6 @@ class SeparatingDisks3D(ThreeDScene):
         y_range = [-2.5, 2.5, 0.5]
         z_range = [-2.5, 2.5, 0.5]
 
-        # TODO: revise which directions the axes are pointing (RIGHT, UP, OUT?)
         ax = ThreeDAxes(
             x_range=x_range,
             y_range=y_range,
@@ -42,7 +41,7 @@ class SeparatingDisks3D(ThreeDScene):
         (inner_dots, inner_array), (
             outer_dots,
             outer_array,
-        ) = generate_outer_inner_circles(ax, 100)
+        ) = generate_outer_inner_circles(ax, 150)
 
         self.begin_ambient_camera_rotation(-0.1)
 
@@ -75,19 +74,24 @@ class SeparatingDisks3D(ThreeDScene):
         self.wait()
 
         # get the normal vector of the plane (equivalent to the last layer's weights)
-        normal_vector = list(diskclassifier.parameters())[-2][0].detach().numpy()
-        normal_vector = normal_vector / np.linalg.norm(normal_vector)
+        final_weight = list(diskclassifier.parameters())[-2][0].detach().numpy()
+        normal_vector = final_weight / np.linalg.norm(final_weight)
 
         # getting the polar coordinates of the normal vector
         theta = np.arccos(normal_vector[2])
         phi = np.arctan2(normal_vector[1], normal_vector[0])
 
+        # the distance of the plane from the origin
+        bias = list(diskclassifier.parameters())[-1][0].detach().numpy()
+        distance = bias / np.linalg.norm(final_weight)
+
         normal_arrow = Arrow(
             ax.c2p(*ORIGIN),
-            ax.c2p(*normal_vector),
+            ax.c2p(*(normal_vector * 0.75)),
             color=colors.DARK_RED,
             buff=0,
-        )
+        ).shift(ax.c2p(*(-normal_vector * distance)))
+
         self.play(Create(normal_arrow))
         self.wait()
 
@@ -104,8 +108,8 @@ class SeparatingDisks3D(ThreeDScene):
         hyperplane.rotate(angle=theta, axis=ax.c2p(*IN), about_point=ax.c2p(*IN))
         hyperplane.rotate(angle=phi, axis=ax.c2p(*RIGHT), about_point=ax.c2p(*RIGHT))
 
-        # move the plane to the correct position
-        hyperplane.move_to(ax.c2p(0, 0, 0))
+        # shifting the plane to the correct distance from the origin
+        hyperplane.shift(ax.c2p(*(-normal_vector * distance)))
 
         # create the plane
         self.play(Create(hyperplane))

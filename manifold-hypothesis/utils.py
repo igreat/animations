@@ -9,8 +9,10 @@ from sklearn.decomposition import PCA
 
 
 def generate_outer_inner_circles(
-    ax: Axes, num_dots: int = 100, resolution: tuple[int, int] = (2, 2)
+    ax: Axes, num_dots: int = 100, dot_constructor=Dot3D
 ) -> tuple[tuple[Group, np.ndarray], tuple[Group, np.ndarray]]:
+
+    # by default assumes 3d dots and 3d axes
 
     inner = []
     for _ in range(num_dots):
@@ -33,7 +35,7 @@ def generate_outer_inner_circles(
 
     inner_dots = Group(
         *[
-            Dot3D(
+            dot_constructor(
                 ax.c2p(*point, 0),
                 radius=0.05,
                 color=colors.PURPLE,
@@ -44,7 +46,7 @@ def generate_outer_inner_circles(
 
     outer_dots = Group(
         *[
-            Dot3D(
+            dot_constructor(
                 ax.c2p(*point, 0),
                 radius=0.05,
                 color=colors.RED,

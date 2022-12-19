@@ -3,7 +3,7 @@ import colors
 import numpy as np
 from utils import add_brackets
 from modules import Grid
-from models import Spirals2dModel, VisualizationModel
+from models import SpiralsClassifier2D, VisualizationModel
 import torch
 from torch import optim
 import torch.nn.functional as F
@@ -32,22 +32,17 @@ equals_tex = MathTex(
 ).set_stroke(width=1)
 
 
-# TODO: perhaps put more words in my animations. For example:
-#       put a title at the top indicating what I'm talking about
-
-# TODO: perhaps show how the last transformation both corresponds
-#       to a hyperplane or line separating the classes
-
-
 class SeparatingSpirals2d(Scene):
     def construct(self):
 
         self.build_spirals()
         self.wait()
 
-        self.model = Spirals2dModel()
+        self.model = SpiralsClassifier2D()
         # why is this not a pt file?
-        self.model.load_state_dict(torch.load("saved_models/separating_spirals2d_tanh"))
+        self.model.load_state_dict(
+            torch.load("saved_models/separating_spirals2d_tanh.pt")
+        )
         self.model.eval()
 
         self.show_neural_network()
@@ -55,9 +50,7 @@ class SeparatingSpirals2d(Scene):
         self.train_neural_net()
         self.show_mapping()
 
-        # TODO: think about displaying the matrices as the transformation goes on
-        # self.transform()
-        # self.wait()
+        self.transform()
         self.wait(2)
 
     def build_spirals(self):
@@ -96,11 +89,6 @@ class SeparatingSpirals2d(Scene):
 
         self.ax = build_axes(self.x_range, self.y_range)
         # ax = always_redraw(lambda: build_axes(self.x_range, self.y_range))
-
-        # grid = Grid(ax, [-3.5, 3.5, 0.5], [-3.5, 3.5, 0.5])
-
-        # grid.set_color(colors.BLACK)
-        # grid.grid_lines.set_stroke(width=0.5)
 
         t = np.arange(1, 11, 0.1) * 0.4
         self.blue_spiral_array = (np.array([np.cos(t), np.sin(t)]) * t).T
@@ -269,9 +257,6 @@ class SeparatingSpirals2d(Scene):
             self.vis_model.nodes[1].animate.scale(1.5),
         )
         self.wait()
-
-        # TODO: here I actually want to show the mapping in terms of
-        #       numbers first, and then show them in the axes
 
         def get_dot_pos(t):
             return np.array([np.cos(t), np.sin(t)]) * t
@@ -661,13 +646,43 @@ class SeparatingSpirals2d(Scene):
         self.play(full_operation_text.animate.move_to(centered_position))
         self.wait()
 
+        mobs_to_remove = VGroup(
+            full_operation_text,
+            tracked_dot,
+            trans_dot,
+            self.vis_model.nodes[:2],
+            self.vis_model.lines[0],
+            trans_text,
+            dot_text,
+        )
+        self.play(FadeOut(mobs_to_remove))
+        self.wait()
+
     def transform(self):
+
+        # putting the ax back to the center of the screen and scaling it up a bit
+        self.play(
+            VGroup(self.ax, self.blue_spiral, self.red_spiral)
+            .animate.move_to(ORIGIN)
+            .scale(1.5)
+        )
+        self.wait()
+
+        grid = Grid(self.ax, [-3.5, 3.5, 0.5], [-3.5, 3.5, 0.5])
+
+        grid.set_color(colors.BLACK)
+        grid.grid_lines.set_stroke(width=0.5)
+
+        self.play(Write(grid.grid_lines))
+        self.wait()
 
         blue_outputs = self.model(torch.tensor(self.blue_spiral_array).float())
         red_outputs = self.model(torch.tensor(self.red_spiral_array).float())
-        # grid.array
+        grid_outputs = self.model(torch.tensor(grid.array).float())
 
-        for blue_output, red_output in zip(blue_outputs[:-1], red_outputs[:-1]):
+        for blue_output, red_output, grid_output in zip(
+            blue_outputs[:-1], red_outputs[:-1], grid_outputs[:-1]
+        ):
             new_blue_spiral = [
                 dot.animate.move_to(self.ax.c2p(*pos))
                 for dot, pos in zip(self.blue_spiral, blue_output.detach())
@@ -676,15 +691,15 @@ class SeparatingSpirals2d(Scene):
                 dot.animate.move_to(self.ax.c2p(*pos))
                 for dot, pos in zip(self.red_spiral, red_output.detach())
             ]
-            # new_grid = [
-            #     dot.animate.move_to(next_ax.c2p(*pos))
-            #     for dot, pos in zip(grid.submobjects, grid.array)
-            # ]
+            new_grid = [
+                dot.animate.move_to(self.ax.c2p(*pos))
+                for dot, pos in zip(grid.submobjects, grid_output.detach())
+            ]
 
             self.play(
                 *new_blue_spiral,
                 *new_red_spiral,
-                # *new_grid,
+                *new_grid,
                 run_time=3,
                 rate_func=rate_functions.linear,
             )
@@ -705,10 +720,15 @@ class SeparatingSpirals2d(Scene):
             for dot, pos in zip(self.red_spiral, red_outputs[-1].detach())
         ]
 
+        new_grid = [
+            dot.animate.move_to(self.ax.c2p(pos * scale_factor, 0))
+            for dot, pos in zip(grid.submobjects, grid_outputs[-1].detach())
+        ]
+
         self.play(
             *new_blue_spiral,
             *new_red_spiral,
-            # *new_grid,
+            *new_grid,
             rate_func=rate_functions.linear,
         )
         self.wait()
@@ -722,12 +742,18 @@ class SeparatingSpirals2d(Scene):
             for dot, pos in zip(self.red_spiral, red_outputs[-2].detach())
         ]
 
+        new_grid = [
+            dot.animate.move_to(self.ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid_outputs[-2].detach())
+        ]
+
         self.play(
             *new_blue_spiral,
             *new_red_spiral,
-            # *new_grid,
+            *new_grid,
             rate_func=rate_functions.linear,
         )
+        self.wait()
 
         # go a little deeper into explaining this part
         line = Line(
@@ -737,6 +763,7 @@ class SeparatingSpirals2d(Scene):
         self.play(Create(line))
         self.wait()
         self.play(FadeOut(line))
+        self.wait()
 
         new_blue_spiral = [
             dot.animate.move_to(self.ax.c2p(*pos))
@@ -747,12 +774,16 @@ class SeparatingSpirals2d(Scene):
             for dot, pos in zip(self.red_spiral, self.red_spiral_array)
         ]
 
+        new_grid = [
+            dot.animate.move_to(self.ax.c2p(*pos))
+            for dot, pos in zip(grid.submobjects, grid.array)
+        ]
+
         self.play(
             *new_blue_spiral,
             *new_red_spiral,
-            # *new_grid,
+            *new_grid,
             rate_func=rate_functions.linear,
         )
 
-        # TODO: show the boundary separation in 3D as well
-        #       remember that the normal vector to the hyper plane is just that last matrix multiply
+        self.wait()

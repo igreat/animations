@@ -45,9 +45,13 @@ class SeparatingSpirals2d(Scene):
         self.model.eval()
 
         self.show_neural_network()
+        self.wait()
         self.show_boundary()
+        self.wait()
         self.train_neural_net()
+        self.wait()
         self.show_mapping()
+        self.wait()
 
         self.transform()
         self.wait(2)
@@ -653,12 +657,56 @@ class SeparatingSpirals2d(Scene):
         # TODO: when doing the transformation, maybe show the code of the
         #       neural network on the side
 
+        code = r"""import torch
+from torch import nn
+
+class SpiralsClassifier2D(nn.Module):
+    def __init__(self) -> None:
+        super(SpiralsClassifier2D, self).__init__()
+        # fully connected linear layers (FC)
+        self.fc1 = nn.Linear(2, 2)
+        self.fc2 = nn.Linear(2, 2)
+        self.fc3 = nn.Linear(2, 2)
+        self.fc4 = nn.Linear(2, 2)
+        self.fc5 = nn.Linear(2, 1)
+
+    def forward(self, input):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = torch.tanh(self.fc3(x))
+        x = torch.tanh(self.fc4(x))
+        return self.fc5(x)
+        """
+
+        model_code = Code(
+            code=code,
+            tab_width=2,
+            background="rectangle",
+            language="Python",
+            font="Menlo, Monaco",
+            style="vs",
+            background_stroke_color=colors.BLACK,
+            background_stroke_width=4,
+            line_spacing=1,
+            font_size=18,
+        )
+
         # putting the ax back to the center of the screen and scaling it up a bit
         self.play(
             VGroup(self.ax, self.blue_spiral, self.red_spiral)
             .animate.move_to(ORIGIN)
-            .scale(1.5)
+            .scale(1.4)
         )
+        self.wait()
+
+        model_code.height = self.ax.height * 0.9
+
+        # display the code
+        self.play(Write(model_code))
+
+        # arrange the code and the axes to be next to each other
+        full_graph = VGroup(self.ax, self.blue_spiral, self.red_spiral)
+        self.play(Group(full_graph, model_code).animate.arrange(RIGHT, buff=1))
         self.wait()
 
         grid = Grid(self.ax, [-3.5, 3.5, 0.5], [-3.5, 3.5, 0.5])

@@ -93,9 +93,15 @@ class SeparatingSpirals2d(Scene):
         self.ax = build_axes(self.x_range, self.y_range)
         # ax = always_redraw(lambda: build_axes(self.x_range, self.y_range))
 
-        t = np.arange(1, 11, 0.1) * 0.4
-        self.blue_spiral_array = (np.array([np.cos(t), np.sin(t)]) * t).T
-        self.red_spiral_array = (np.array([np.cos(t + np.pi), np.sin(t + np.pi)]) * t).T
+        t = np.arange(1, 5, 0.05)
+        self.blue_spiral_array = (np.array([np.cos(t), np.sin(t)]) * t).T * 0.5
+        self.red_spiral_array = (
+            np.array([np.cos(t + np.pi), np.sin(t + np.pi)]) * t
+        ).T * 0.5
+
+        # t = np.arange(1, 11, 0.1) * 0.4
+        # self.blue_spiral_array = (np.array([np.cos(t), np.sin(t)]) * t).T
+        # self.red_spiral_array = (np.array([np.cos(t + np.pi), np.sin(t + np.pi)]) * t).T
 
         self.blue_spiral = VGroup(
             *[
@@ -653,8 +659,6 @@ class SeparatingSpirals2d(Scene):
 
     def transform(self):
 
-        # TODO: think about using less entangled spirals for the animation
-
         code = r"""import torch
 from torch import nn
 
@@ -794,7 +798,6 @@ class SpiralsClassifier2D(nn.Module):
         )
         self.wait()
 
-        # go a little deeper into explaining this part
         line = Line(
             *[self.ax.c2p(x, -wf[0] / wf[1] * x - bf / wf[1]) for x in [-2.5, 2.5]]
         ).set_stroke(color=colors.BLACK)

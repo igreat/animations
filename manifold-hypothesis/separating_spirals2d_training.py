@@ -1,7 +1,7 @@
 from manim import *
 import colors
 import numpy as np
-from models import Spirals2dModel
+from models import SpiralsClassifier2D
 import torch
 from torch import optim
 import torch.nn.functional as F
@@ -18,6 +18,8 @@ class SeparatingSpirals2dTraining(Scene):
         # each grid will be for a particular layer
 
         # ALSO SHOW HOW THE BOUNDARY CHANGES WITH TIME!
+
+        # TODO: show how the final separation line evolves with time
 
         ax_grid = VGroup()
         for i in range(8):
@@ -74,7 +76,7 @@ class SeparatingSpirals2dTraining(Scene):
 
         # setting up the model
         # something could go wrong here since I apparently used to call this TrainingModel...
-        model = Spirals2dModel().float()
+        model = SpiralsClassifier2D().float()
 
         optimizer = optim.Adam(model.parameters(), lr=1e-2)
         model.requires_grad_(True)
@@ -85,7 +87,8 @@ class SeparatingSpirals2dTraining(Scene):
             data[:, 2].unsqueeze(1),
             data[:, 3].unsqueeze(1),
         )
-        pred, hidden_out = model(x)
+        outputs = model(x)
+        pred, hidden_out = outputs[-1], outputs[0:-1]
         with torch.no_grad():
             for ax, dots, layer_num in zip(ax_grid, dots_all, range(8)):
                 layer = hidden_out[layer_num].numpy()
@@ -104,7 +107,8 @@ class SeparatingSpirals2dTraining(Scene):
                 data[:, 2].unsqueeze(1),
                 data[:, 3].unsqueeze(1),
             )
-            pred, hidden_out = model(x)
+            outputs = model(x)
+            pred, hidden_out = outputs[-1], outputs[0:-1]
             loss = F.binary_cross_entropy_with_logits(pred, labels)
             with torch.no_grad():
                 animations = []

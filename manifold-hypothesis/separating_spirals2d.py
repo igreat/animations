@@ -654,8 +654,7 @@ class SeparatingSpirals2d(Scene):
 
     def transform(self):
 
-        # TODO: when doing the transformation, maybe show the code of the
-        #       neural network on the side
+        # TODO: think about using less entangled spirals for the animation
 
         code = r"""import torch
 from torch import nn

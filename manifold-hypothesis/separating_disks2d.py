@@ -8,8 +8,6 @@ from modules import Grid
 
 config.background_color = colors.WHITE
 
-# TODO: when doing the transformation, maybe show the code of the 
-#       neural network on the side
 
 class SeparatingDisks2D(Scene):
     def construct(self):

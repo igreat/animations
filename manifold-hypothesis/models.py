@@ -7,6 +7,10 @@ import colors
 
 
 class DiskClassifier3D(nn.Module):
+    """
+    purpose is to extract features (intermediate layers) of a simple 3D disk classifier
+    """
+
     def __init__(self) -> None:
         super(DiskClassifier3D, self).__init__()
 
@@ -27,6 +31,10 @@ class DiskClassifier3D(nn.Module):
 
 
 class DiskClassifier2D(nn.Module):
+    """
+    purpose is to extract features (intermediate layers) of a simple 2D disk classifier
+    """
+
     def __init__(self) -> None:
         super(DiskClassifier2D, self).__init__()
 
@@ -66,6 +74,10 @@ class DiskClassifier2D(nn.Module):
 
 
 class SpiralsClassifier3D(nn.Module):
+    """
+    purpose is to extract features (intermediate layers) of a simple 3D spirals classifier
+    """
+
     def __init__(self) -> None:
         super(SpiralsClassifier3D, self).__init__()
 
@@ -102,6 +114,10 @@ class SpiralsClassifier3D(nn.Module):
 
 
 class SpiralsClassifier2D(nn.Module):
+    """
+    purpose is to extract features (intermediate layers) of a simple 2D spirals classifier
+    """
+
     def __init__(self) -> None:
         super(SpiralsClassifier2D, self).__init__()
 

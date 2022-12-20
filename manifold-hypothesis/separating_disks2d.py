@@ -18,9 +18,40 @@ class SeparatingDisks2D(Scene):
 
     def separate_disks(self):
 
-        # TODO: when doing the transformation, maybe show the code of the
-        #       neural network on the side
+        #### SETTING UP THE SCENE ####
 
+        code = r"""import torch
+from torch import nn
+
+class DiskClassifier2D(nn.Module):
+    def __init__(self) -> None:
+        super(DiskClassifier2D, self).__init__()
+        # fully connected linear layers (FC)
+        self.fc1 = nn.Linear(2, 2)
+        self.fc2 = nn.Linear(2, 2)
+        self.fc3 = nn.Linear(2, 2)
+        self.fc4 = nn.Linear(2, 2)
+        self.fc5 = nn.Linear(2, 1)
+
+    def forward(self, input):
+        x = torch.tanh(self.fc1(x))
+        x = torch.tanh(self.fc2(x))
+        x = torch.tanh(self.fc3(x))
+        x = torch.tanh(self.fc4(x))
+        return self.fc5(x)
+"""
+        model_code = Code(
+            code=code,
+            tab_width=2,
+            background="rectangle",
+            language="Python",
+            font="Menlo, Monaco",
+            style="vs",
+            background_stroke_color=colors.BLACK,
+            background_stroke_width=4,
+            line_spacing=1,
+            font_size=18,
+        )
 
         # load the disk classifier model
         diskclassifier = DiskClassifier2D()
@@ -44,11 +75,13 @@ class SeparatingDisks2D(Scene):
                 },
             ).set_stroke(color=colors.BLACK)
 
+        model_code.height = ax.height * 0.75
+
         # generate the inner and outer dots
         (inner_dots, inner_array), (
             outer_dots,
             outer_array,
-        ) = generate_outer_inner_circles(ax, 100, dot_constructor=Dot)
+        ) = generate_outer_inner_circles(ax, 150, dot_constructor=Dot)
 
         # create the grid
         grid = Grid(ax, [-3.5, 3.5, 0.25], [-3.5, 3.5, 0.25])
@@ -60,6 +93,16 @@ class SeparatingDisks2D(Scene):
         self.play(Write(grid.grid_lines))
         self.play(Write(VGroup(*inner_dots, *outer_dots)))
         self.wait()
+
+        self.play(Write(model_code))
+        self.wait()
+
+        full_graph = Group(ax, grid.submobjects, inner_dots, outer_dots)
+        self.play(Group(full_graph, model_code).animate.arrange(RIGHT, buff=1))
+        self.wait()
+
+
+        #### TRANSFORMING THE DISKS ####
 
         # get the intermediate outputs of the inner, outer and grid arrays
         outer_outputs = diskclassifier(torch.tensor(outer_array).float())

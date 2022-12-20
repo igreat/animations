@@ -14,13 +14,6 @@ class SeparatingSpirals2dTraining(Scene):
         x_range = [-2.5, 2.5, 0.5]
         y_range = [-2.5, 2.5, 0.5]
 
-        # here what I actually want is multiple axis arranged in a grid (use .arrange(rows, cols))
-        # each grid will be for a particular layer
-
-        # ALSO SHOW HOW THE BOUNDARY CHANGES WITH TIME!
-
-        # TODO: show how the final separation line evolves with time
-
         ax_grid = VGroup()
         for i in range(8):
             ax = Axes(
@@ -78,9 +71,6 @@ class SeparatingSpirals2dTraining(Scene):
         # something could go wrong here since I apparently used to call this TrainingModel...
         model = SpiralsClassifier2D().float()
 
-        optimizer = optim.Adam(model.parameters(), lr=1e-2)
-        model.requires_grad_(True)
-
         # getting the initial position
         x, labels, indices = (
             data[:, 0:2],
@@ -99,6 +89,38 @@ class SeparatingSpirals2dTraining(Scene):
                         dots[1][int(i.item())].move_to(ax.c2p(*h_out))
 
         self.play(Write(dots_all))
+
+        def get_line() -> Line:
+            # doing it through rotation and shifting for an easy way to maintain the line's length
+
+            # get the normal vector of the line (equivalent to the last layer's weights)
+            final_weight = list(model.parameters())[-2][0].detach().numpy()
+            normal_vector = final_weight / np.linalg.norm(final_weight)
+
+            # getting the polar coordinates of the normal vector
+            theta = np.arctan2(normal_vector[1], normal_vector[0])
+
+            # the distance of the line from the origin
+            bias = list(model.parameters())[-1][0].detach().numpy()
+            distance = bias / np.linalg.norm(final_weight)
+
+            # define the line
+            line = Line(DOWN, UP).set_stroke(color=colors.BLACK)
+
+            # rotate the line to the normal vector
+            line.rotate(theta).move_to(ax_grid[-1].c2p(*ORIGIN))
+
+            # shift the line to the correct distance from the origin
+            line.move_to(ax_grid[-1].c2p(*(-normal_vector * distance)))
+
+            return line
+
+        line = always_redraw(get_line)
+
+        self.play(Write(line))
+
+        optimizer = optim.Adam(model.parameters(), lr=1e-2)
+        model.requires_grad_(True)
 
         # training loop
         for epoch in range(200):
@@ -126,6 +148,7 @@ class SeparatingSpirals2dTraining(Scene):
 
                 if epoch % 1 == 0:
                     print(f"epoch: {epoch}, loss: {loss.item():.4f}")
+
             self.play(*animations, run_time=0.005, rate_func=linear)
 
             optimizer.zero_grad()

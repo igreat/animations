@@ -308,7 +308,6 @@ class SeparatingSpirals2d(Scene):
         self.wait()
 
         def get_trans_pos(p):
-            # TODO: change the transform matrix
             A = np.array([[0.25, 0.5], [0.5, 0.25]])
             return np.tanh(A @ p + [1, 1])
 

@@ -103,13 +103,17 @@ class SeparatingDisks3D(ThreeDScene):
         )
 
         # rotate the plane to have a normal vector of normal_vector
+        # wait, why did I make the about_point not the origin here?
         hyperplane.rotate(angle=theta, axis=ax.c2p(*IN), about_point=ax.c2p(*IN))
         hyperplane.rotate(angle=phi, axis=ax.c2p(*RIGHT), about_point=ax.c2p(*RIGHT))
 
         # shifting the plane to the correct distance from the origin
-        hyperplane.shift(ax.c2p(*(-normal_vector * distance)))
+        hyperplane.move_to(ax.c2p(*(-normal_vector * distance)))
 
         # TODO: fix issue where the plane appears in front of everything
+
+        # think about creating the plane as a surface mesh defined by a function
+        # and see if that works
 
         # create the plane and its normal
         self.play(FadeIn(hyperplane), FadeIn(normal_arrow))

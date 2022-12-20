@@ -39,7 +39,6 @@ class SeparatingSpirals2d(Scene):
         self.wait()
 
         self.model = SpiralsClassifier2D()
-        # why is this not a pt file?
         self.model.load_state_dict(
             torch.load("saved_models/separating_spirals2d_tanh.pt")
         )
@@ -127,9 +126,6 @@ class SeparatingSpirals2d(Scene):
         self.wait()
 
     def show_boundary(self):
-
-        # TODO: think about another way you might draw the boundaries that
-        #       is both more efficient and smoother
 
         points = []
         x_min, x_max, y_min, y_max = -3, 3, -3, 3
@@ -351,12 +347,6 @@ class SeparatingSpirals2d(Scene):
         self.play(t.animate.set_value(4.4), run_time=3)
         self.play(t.animate.set_value(1.0), run_time=3)
         self.wait()
-
-        # TODO: briefly show what neural network's neurons are and how
-        #       that translates to a matrix multiplication plus a bias
-
-        # TODO: consider adding a bounding box similar to first video
-        #       for matrix illustration
 
         highlight_lines1 = build_layer_lines(
             self.vis_model.input_nodes,
@@ -659,6 +649,9 @@ class SeparatingSpirals2d(Scene):
         self.wait()
 
     def transform(self):
+
+        # TODO: when doing the transformation, maybe show the code of the
+        #       neural network on the side
 
         # putting the ax back to the center of the screen and scaling it up a bit
         self.play(

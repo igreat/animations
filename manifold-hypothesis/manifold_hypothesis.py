@@ -35,10 +35,10 @@ mnist_feature_extractor.eval().requires_grad_(False)
 
 class ManifoldHypothesis(ThreeDScene):
     def construct(self):
-        # self.datasets_examples()
-        # self.manifold_examples()
+        self.datasets_examples()
+        self.manifold_examples()
         self.mnist_classifier_code()
-        # self.mnist_separation()
+        self.mnist_separation()
         self.wait()
 
     def datasets_examples(self):
@@ -244,6 +244,10 @@ class ManifoldHypothesis(ThreeDScene):
         Here, I'll show the code I used to make the neural network as
         a cheap way of showcasing what neural network structure I'm using
         """
+
+        # TODO: actually think about pinning this to the side
+        #       while showing the transformation taking place
+
         code = r"""import torch
 from torch import nn
 
@@ -274,7 +278,7 @@ class MnistClassifier(nn.Module):
         )
         self.play(Write(model_code))
         self.wait()
-        self.play(Unwrite(model_code))
+        self.play(FadeOut(model_code))
         self.wait()
 
     def mnist_separation(self):

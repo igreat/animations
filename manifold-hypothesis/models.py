@@ -29,11 +29,40 @@ class DiskClassifier3D(nn.Module):
 class DiskClassifier2D(nn.Module):
     def __init__(self) -> None:
         super(DiskClassifier2D, self).__init__()
-        # to be implemented
+
+        self.fc1 = nn.Linear(2, 2)
+        self.fc2 = nn.Linear(2, 2)
+        self.fc3 = nn.Linear(2, 2)
+        self.fc4 = nn.Linear(2, 2)
+        self.fc5 = nn.Linear(2, 1)
 
     def forward(self, input):
-        # to be implemented
-        pass
+        outputs = [input]
+
+        x = self.fc1(input)
+        outputs.append(x)
+        x = torch.tanh(x)
+        outputs.append(x)
+
+        x = self.fc2(x)
+        outputs.append(x)
+        x = torch.tanh(x)
+        outputs.append(x)
+
+        x = self.fc3(x)
+        outputs.append(x)
+        x = torch.tanh(x)
+        outputs.append(x)
+
+        x = self.fc4(x)
+        outputs.append(x)
+        x = torch.tanh(x)
+        outputs.append(x)
+
+        x = self.fc5(x)
+        outputs.append(x)
+
+        return outputs
 
 
 class SpiralsClassifier3D(nn.Module):

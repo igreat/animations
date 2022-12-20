@@ -245,9 +245,6 @@ class ManifoldHypothesis(ThreeDScene):
         a cheap way of showcasing what neural network structure I'm using
         """
 
-        # TODO: actually think about pinning this to the side
-        #       while showing the transformation taking place
-
         code = r"""import torch
 from torch import nn
 
@@ -308,13 +305,14 @@ class MnistClassifier(nn.Module):
         self.begin_ambient_camera_rotation(-0.1)
 
         self.play(Write(axes))
+        self.wait(2)
 
         data, _ = next(iter(full_loader))
 
         data = data.view(-1, 28 * 28).requires_grad_(False)
         all_features = mnist_feature_extractor(data)
         # perform PCA on all layers and gather only first n images
-        n = 100
+        n = 150
         reduced_features = [reduce_dimentionality(x, 3)[:n] for x in all_features]
 
         # normalizing the features to a range of [-1 to 1] for convenience
@@ -355,7 +353,4 @@ class MnistClassifier(nn.Module):
                 )
 
             self.play(*animations)
-            self.wait()
-
-        # TODO: maybe increase the depth of the network as that's an easy variable to change
-        #       must retrain the model though
+            self.wait(2)

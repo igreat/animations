@@ -191,7 +191,14 @@ class TanhGraph(Scene):
 
         full_graph = VGroup(ax, labels, graph, dot, tanh_text)
 
-        self.play(Write(full_graph), Write(self.ax_border))
+        # make the dot in front of the graph
+        dot.z_index = 3
+        graph.z_index = 0
+
+        self.play(Write(VGroup(ax, labels, tanh_text, self.ax_border, dot)))
+        self.wait()
+        self.play(Write(graph))
+        self.wait()
         self.play(Write(dot_text))
         full_graph.add(dot_text)
         self.play(t.animate.set_value(3), run_time=3)
@@ -229,7 +236,7 @@ class TanhGraph(Scene):
 
         fixed_grid.axes.set_color(colors.BLACK).set_stroke(width=2)
 
-        grid = Grid(fixed_grid, [-3.5, 3.5, 0.5], [-3.5, 3.5, 0.5], lattice_radius=0.04)
+        grid = Grid(fixed_grid, [-3.5, 3.5, 0.5], [-2, 2, 0.5], lattice_radius=0.04)
 
         grid.set_color(colors.BLACK)
         grid.grid_lines.set_stroke(width=0.5)
@@ -469,6 +476,7 @@ class AffineNonLinearTransform(Scene):
             )
             .set_fill(color=colors.BLACK, opacity=0.75)
             .move_to(translation_text.get_center())
+            .set_stroke(width=0)
         )
         translation_text_box.z_index = 0
 
@@ -492,7 +500,8 @@ class AffineNonLinearTransform(Scene):
         dot_text = always_redraw(get_dot_text)
         dot_text.add_updater(lambda x: x.move_to(dot.get_center() + UP * 0.25))
 
-        full_graph = VGroup(ax, labels, grid, dot)
+        grid.grid_lines.set_stroke(width=1)
+        full_graph = VGroup(ax, labels, grid, grid.grid_lines, dot)
 
         self.play(Write(full_graph), Write(ax_border))
         self.play(Write(dot_text))

@@ -27,6 +27,16 @@ class SeparatingSpirals2dTraining(Scene):
             ax_grid.add(ax)
         ax_grid.arrange_in_grid(2, buff=0.05)
 
+        surrounding_boxes = VGroup()
+        for ax in ax_grid:
+            surrounding_boxes.add(
+                SurroundingRectangle(
+                    ax,
+                    buff=0,
+                    color=colors.BLACK,
+                ).set_stroke(width=1.5)
+            )
+
         t = np.arange(1, 5, 0.05)
         array1 = (np.array([np.cos(t), np.sin(t)]) * t).T * 0.5
         array2 = (np.array([np.cos(t + np.pi), np.sin(t + np.pi)]) * t).T * 0.5
@@ -50,7 +60,7 @@ class SeparatingSpirals2dTraining(Scene):
             )
             dots_all.add(VGroup(dots1, dots2))
 
-        self.play(Write(VGroup(ax_grid)))
+        self.play(Write(VGroup(ax_grid, surrounding_boxes)))
 
         # setting up data for training
         labels1 = np.ones(len(array1)).reshape(-1, 1)

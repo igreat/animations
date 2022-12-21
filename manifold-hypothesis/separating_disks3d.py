@@ -6,7 +6,6 @@ from utils import generate_outer_inner_circles
 from models import DiskClassifier3D
 
 config.background_color = colors.WHITE
-config.renderer = "opengl"
 
 
 class SeparatingDisks3D(ThreeDScene):
@@ -42,7 +41,7 @@ class SeparatingDisks3D(ThreeDScene):
         (inner_dots, inner_array), (
             outer_dots,
             outer_array,
-        ) = generate_outer_inner_circles(ax, 50)
+        ) = generate_outer_inner_circles(ax, 60)
 
         self.begin_ambient_camera_rotation(-0.1)
 
@@ -88,33 +87,33 @@ class SeparatingDisks3D(ThreeDScene):
 
         normal_arrow = Arrow(
             ax.c2p(*ORIGIN),
-            ax.c2p(*(normal_vector * 0.75)),
+            ax.c2p(*(normal_vector * 0.5)),
             color=colors.DARK_RED,
             buff=0,
         ).shift(ax.c2p(*(-normal_vector * distance)))
 
         ### separating the two regions with a plane ###
+
+        # define a hyperplane as a surface object: (a compromise for the hyperplane bug)
+        # this still appears in front of everything but has a built in square lattice pattern
+        # which allows me to make the opacity very low
         hyperplane = (
-            Square(side_length=ax.x_length, shade_in_3d=True)
-            .set_fill(color=colors.DESERT, opacity=0.25)
-            .set_stroke(color=colors.BLACK, width=4)
+            Surface(
+                lambda u, v: ax.c2p(u, v, 0), u_range=[-2.5, 2.5], v_range=[-2.5, 2.5]
+            )
+            .set_fill(color=colors.DESERT, opacity=0.75)
             .move_to(ax.c2p(0, 0, 0))
             .rotate(PI / 2, axis=ax.c2p(*UP))
+            .set_stroke(width=0)
         )
 
         # rotate the plane to have a normal vector of normal_vector
         # wait, why did I make the about_point not the origin here?
-        hyperplane.rotate(angle=theta, axis=ax.c2p(*IN), about_point=ax.c2p(*IN))
-        hyperplane.rotate(angle=phi, axis=ax.c2p(*RIGHT), about_point=ax.c2p(*RIGHT))
+        hyperplane.rotate(angle=theta, axis=ax.c2p(*IN), about_point=ax.c2p(*ORIGIN))
+        hyperplane.rotate(angle=phi, axis=ax.c2p(*RIGHT), about_point=ax.c2p(*ORIGIN))
 
         # shifting the plane to the correct distance from the origin
         hyperplane.move_to(ax.c2p(*(-normal_vector * distance)))
 
-        # TODO: fix issue where the plane appears in front of everything
-
-        # think about creating the plane as a surface mesh defined by a function
-        # and see if that works
-
-        # create the plane and its normal
         self.play(FadeIn(hyperplane), FadeIn(normal_arrow))
-        self.wait(30)
+        self.wait(35)

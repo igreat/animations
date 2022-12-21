@@ -60,7 +60,8 @@ class SeparatingSpirals2dTraining(Scene):
             )
             dots_all.add(VGroup(dots1, dots2))
 
-        self.play(Write(VGroup(ax_grid, surrounding_boxes)))
+        self.play(Write(surrounding_boxes))
+        self.play(Write(VGroup(ax_grid)))
 
         # setting up data for training
         labels1 = np.ones(len(array1)).reshape(-1, 1)
@@ -115,7 +116,7 @@ class SeparatingSpirals2dTraining(Scene):
             distance = bias / np.linalg.norm(final_weight)
 
             # define the line
-            line = Line(DOWN, UP).set_stroke(color=colors.BLACK)
+            line = Line(DOWN * 1.25, UP * 1.25).set_stroke(color=colors.BLACK)
 
             # rotate the line to the normal vector
             line.rotate(theta).move_to(ax_grid[-1].c2p(*ORIGIN))
@@ -133,12 +134,7 @@ class SeparatingSpirals2dTraining(Scene):
         model.requires_grad_(True)
 
         # training loop
-        for epoch in range(200):
-            x, labels, indices = (
-                data[:, 0:2],
-                data[:, 2].unsqueeze(1),
-                data[:, 3].unsqueeze(1),
-            )
+        for epoch in range(300):
             outputs = model(x)
             pred, hidden_out = outputs[-1], outputs[0:-1]
             loss = F.binary_cross_entropy_with_logits(pred, labels)
@@ -159,7 +155,7 @@ class SeparatingSpirals2dTraining(Scene):
                 if epoch % 1 == 0:
                     print(f"epoch: {epoch}, loss: {loss.item():.4f}")
 
-            self.play(*animations, run_time=0.005, rate_func=linear)
+            self.play(*animations, run_time=0.01, rate_func=linear)
 
             optimizer.zero_grad()
             loss.backward()

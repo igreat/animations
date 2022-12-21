@@ -35,8 +35,8 @@ mnist_feature_extractor.eval().requires_grad_(False)
 
 class ManifoldHypothesis(ThreeDScene):
     def construct(self):
-        self.datasets_examples()
-        self.manifold_examples()
+        # self.datasets_examples()
+        # self.manifold_examples()
         self.mnist_classifier_code()
         self.mnist_separation()
         self.wait()
@@ -312,7 +312,7 @@ class MnistClassifier(nn.Module):
         data = data.view(-1, 28 * 28).requires_grad_(False)
         all_features = mnist_feature_extractor(data)
         # perform PCA on all layers and gather only first n images
-        n = 150
+        n = 50
         reduced_features = [reduce_dimentionality(x, 3)[:n] for x in all_features]
 
         # normalizing the features to a range of [-1 to 1] for convenience
@@ -344,6 +344,9 @@ class MnistClassifier(nn.Module):
         animations = [FadeIn(image) for image in images]
         self.play(*animations)
 
+        self.wait(10)
+        return
+
         # showing the transformations
         for batch_features in reduced_normalized_features[1:]:
             animations = []
@@ -353,4 +356,6 @@ class MnistClassifier(nn.Module):
                 )
 
             self.play(*animations)
-            self.wait(2)
+            self.wait(1)
+
+        self.wait(30)

@@ -1,8 +1,8 @@
 from manim import *
-import colors
+from utils import colors
 import numpy as np
-from models import DiskClassifier2D
-from utils import generate_outer_inner_arrays
+from utils.models import DiskClassifier2D
+from utils.other_utils import generate_outer_inner_arrays
 import torch
 from torch import optim
 import torch.nn.functional as F
@@ -38,12 +38,18 @@ class SeparatingDisks2dTraining(Scene):
                 ).set_stroke(width=1.5)
             )
 
-        array1, array2 = generate_outer_inner_arrays(200)
+        array1, array2 = generate_outer_inner_arrays(500)
 
         self.layers = []
 
         dots_all = VGroup()
         for ax in ax_grid:
+            dots2 = VGroup(
+                *[
+                    Dot([ax.c2p(*point)], radius=0.04, color=colors.RED)
+                    for point in array2
+                ]
+            )
             dots1 = VGroup(
                 *[
                     Dot(ax.c2p(*point), radius=0.04, color=colors.PURPLE)
@@ -51,13 +57,7 @@ class SeparatingDisks2dTraining(Scene):
                 ]
             )
 
-            dots2 = VGroup(
-                *[
-                    Dot([ax.c2p(*point)], radius=0.04, color=colors.RED)
-                    for point in array2
-                ]
-            )
-            dots_all.add(VGroup(dots1, dots2))
+            dots_all.add(VGroup(dots2, dots1))
 
         self.play(Write(surrounding_boxes))
         self.play(Write(VGroup(ax_grid)))
@@ -129,7 +129,7 @@ class SeparatingDisks2dTraining(Scene):
 
         self.play(Write(line))
 
-        optimizer = optim.Adam(model.parameters(), lr=1e-2)
+        optimizer = optim.Adam(model.parameters(), lr=5e-3)
         model.requires_grad_(True)
 
         # training loop

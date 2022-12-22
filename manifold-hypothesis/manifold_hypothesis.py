@@ -1,9 +1,9 @@
 from manim import *
-import colors
 import numpy as np
-from utils import reduce_dimentionality
-from modules import MnistImage
-from models import MnistClassifier
+from utils import colors
+from utils.other_utils import reduce_dimentionality
+from utils.modules import MnistImage
+from utils.models import MnistClassifier
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader

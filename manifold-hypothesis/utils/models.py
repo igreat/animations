@@ -3,7 +3,7 @@ import torch
 from torch import nn
 import random
 from pytorch_utils.layer import Layer
-import colors
+from utils import colors
 
 
 class DiskClassifier3D(nn.Module):

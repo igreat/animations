@@ -1,9 +1,9 @@
 from manim import *
-import colors
+from utils import colors
 import numpy as np
-from utils import add_brackets
-from modules import Grid
-from models import SpiralsClassifier2D, VisualizationModel
+from utils.other_utils import add_brackets
+from utils.modules import Grid
+from utils.models import SpiralsClassifier2D, VisualizationModel
 import torch
 from torch import optim
 import torch.nn.functional as F

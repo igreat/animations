@@ -1,8 +1,8 @@
 from manim import *
-import colors
+from utils import colors
 import numpy as np
 import math
-from modules import Grid
+from utils.modules import Grid
 
 config.background_color = colors.WHITE
 

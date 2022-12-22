@@ -1,7 +1,7 @@
 from manim import *
 import math
 import random
-import colors
+from utils import colors
 from sklearn.decomposition import PCA
 
 
@@ -57,13 +57,6 @@ def generate_outer_inner_circles(
         ]
     )
     return (inner_dots, inner_array), (outer_dots, outer_array)
-
-
-def change_range(range: list[ValueTracker], range_to: list[float], animation=True):
-    if animation:
-        return [v.animate.set_value(i) for v, i in zip(range, range_to)]
-    else:
-        return [v.set_value(i) for v, i in zip(range, range_to)]
 
 
 # code modified from https://financial-engineering.medium.com/manim-add-brackets-584563675923

@@ -1,6 +1,6 @@
 from torch import nn
 from manim import *
-import colors
+from utils import colors
 
 
 def build_labels(nodes, layer_index):

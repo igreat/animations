@@ -1,5 +1,5 @@
 from manim import *
-import colors
+from utils import colors
 from functools import partial
 
 

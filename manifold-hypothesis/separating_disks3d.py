@@ -1,9 +1,9 @@
 from manim import *
 import torch
-import colors
+from utils import colors
 import numpy as np
-from utils import generate_outer_inner_circles
-from models import DiskClassifier3D
+from utils.other_utils import generate_outer_inner_circles
+from utils.models import DiskClassifier3D
 
 config.background_color = colors.WHITE
 

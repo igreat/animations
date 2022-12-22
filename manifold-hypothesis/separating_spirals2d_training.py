@@ -1,7 +1,7 @@
 from manim import *
-import colors
+from utils import colors
 import numpy as np
-from models import SpiralsClassifier2D
+from utils.models import SpiralsClassifier2D
 import torch
 from torch import optim
 import torch.nn.functional as F
